@@ -1,0 +1,27 @@
+p{
+    font-family: "Times New Roman", Times, serif;
+    text-align: center;
+    font-size: 20 px;
+    color: #FFFFF0
+}
+    
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+header {
+    background-color: #a01515;
+    text-align: center;
+    padding: 20px;
+    font-family: 'Work Sans', sans-serif;
+  }
+body {
+    background-image: url("Rain.jpg");
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+footer {
+    color: #FFFFF0;
+    background-color: #778899;
+    font-family: 'Source Sans Pro', sans-serif;
+}
