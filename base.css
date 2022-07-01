@@ -25,8 +25,8 @@ header{
 }
 
 h1, h2, h3, h4, h5, h6{
-	text-align: center;
-	font-size: 20px;
+  
+	font-size: 30px;
 	text-shadow: .25rem .25rem .75rem #333;
 	margin-bottom: 1rem;
 }
@@ -39,7 +39,6 @@ h1, h2, h3, h4, h5, h6{
   left: 900px;
   width: 200px;
   height: 100px;    
-  border: 2px double black;
 }
 
 .topright {
