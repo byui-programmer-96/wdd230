@@ -73,7 +73,7 @@ p {
 
 .stats {
 	position: absolute;
-	bottom: 40px;
+	bottom: 120px;
 	right: 400px;
 	background: radial-gradient(#eee, #4567aa);
 	border: 1px solid #000;
