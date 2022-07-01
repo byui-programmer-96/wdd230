@@ -30,7 +30,7 @@ h1, h2, h3, h4, h5, h6{
 
 .herodiv {
 	margin: 10px auto;
-	position: relative;
+	position: absolute;
     width: 200px;
     height: 300px;
     align-items: right;
