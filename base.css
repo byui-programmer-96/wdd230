@@ -19,6 +19,7 @@ header{
     background-color: rgb(146, 12, 68);
     display: grid; 
     grid-template-columns: 200px, 1fr ;
+    text-align: center;
 }
 
 h1, h2, h3, h4, h5, h6{
