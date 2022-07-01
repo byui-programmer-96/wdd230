@@ -25,7 +25,7 @@ header{
 }
 
 h1, h2, h3, h4, h5, h6{
-  
+  text-align: left;
 	font-size: 30px;
 	text-shadow: .25rem .25rem .75rem #333;
 	margin-bottom: 1rem;
