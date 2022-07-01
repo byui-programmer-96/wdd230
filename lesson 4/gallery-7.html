@@ -1,71 +1,40 @@
+<!DOCTYPE html>
 <html>
-  <title>Gallery</title>
-
 <head>
-  <style>
-    * {
+  <title>Gallery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* {
   box-sizing: border-box;
-  }
+}
 
-  .column {
-    float: left;
-    width: 33.33%;
-    padding: 5px;
-  }
+.row {
+  display: flex;
+}
 
-  /* Clearfix (clear floats) */
-  .row::after {
-    content: "";
-    clear: both;
-    display: table;
-  }
-
-  /* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
-  @media screen and (max-width: 500px) {
-    .column {
-      width: 100%;
-    }
-  }
-  </style>
+/* Create three equal columns that sits next to each other */
+.column {
+  flex: 33.33%;
+  padding: 5px;
+}
+</style>
 </head>
-
 <body>
 
-  <div class="gallery">
-    <a target="_blank" href="Cloud-to-ground lightning.jpg">
-      <img src="Cloud-to-ground lightning.jpg" alt="lighting" width="600" height="400">
-    </a>
-    <div class="desc">Cloud-to-ground lightning 1. 5 miles west-northwest of Gilbert, IA.</div>
-  </div>
+<h2>Images Side by Side</h2>
+<p>How to create side-by-side images with CSS Flexbox:</p>
 
-  <div class="gallery">
-    <a target="_blank" href="Alaska coast ranges.jpg">
-      <img src="Alaska coast ranges.jpg" alt="Forest" width="600" height="400">
-    </a>
-    <div class="desc">Aerial view of Alaska coast ranges between Juneau and Anchorage</div>
+<div class="row">
+  <div class="column">
+    <img src="img_snow.jpg" alt="Snow" style="width:100%">
   </div>
-
-  <div class="gallery">
-    <a target="_blank" href="tornado_in_a_field.jpg">
-      <img src="tornado_in_a_field.jpg" alt="tornado" width="600" height="400">
-    </a>
-    <div class="desc">Add a description of the image here</div>
+  <div class="column">
+    <img src="img_forest.jpg" alt="Forest" style="width:100%">
   </div>
-
-  <div class="gallery">
-    <a target="_blank" href="Doppler.jpg">
-      <img src="Doppler.jpg" alt="Doppler radar on wheels" width="600" height="400">
-    </a>
-    <div class="desc">A Doppler on Wheels radar tracks an intense supercell thunderstorm west of Guthrie. </div>
+  <div class="column">
+    <img src="img_mountains.jpg" alt="Mountains" style="width:100%">
   </div>
-
-  <div class="gallery">
-    <a target="_blank" href="VORTEX2_vehicles.jpg">
-        <img src="VORTEX2_vehicles.jpg" alt="#" width="600" height="400">
-    </a>
-    <div class="desc">A fleet of VORTEX2 vehicles tracks a supercell thunderstorm near Dumas.</div>
 </div>
 
-</div>
 </body>
 </html>
