@@ -56,7 +56,7 @@ input[type="button"] {
 	color: rgba(0, 0, 255, 0.342);
 }
 input[type="button"]:hover {
-	background-color: rgba(216, 3, 180, 0.329);
+	background-color: #d803b454;
 }
 
 
@@ -65,7 +65,7 @@ input:invalid {
 	color: #000;
 }
 input:valid {
-	background-color: rgba(56, 52, 94, 0.884);
+	background-color: rgb(56, 52, 94);
 	color: #000;
 }
 
@@ -88,14 +88,14 @@ input[type="radio"], input[type="checkbox"] {
 
 #ratingvalue {
 	margin: 0 15px;
-	color: #2024ff;
+	color: #e0e1e9;
 }
 
 #selected {
 	position: absolute;
 	top: 550px;
 	left: 300px;
-	border: 1px solid #999;
+	border: 1px solid rgb(14, 13, 13);
 	background-color: #abe;
 	padding: 10px;
 	font-weight: 700;
@@ -122,7 +122,44 @@ input[type='checkbox']:checked {
 #checkounter::before {
 	content: counter(total);
 }
+.dropbtn {
+  background-color: rgb(150, 73, 73);
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
 
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.555);
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown:hover .dropbtn {
+  background-color: rgb(150, 73, 73);
+}
 </style>
 <head>
 <title>Storm Central</title>
@@ -140,21 +177,20 @@ input[type='checkbox']:checked {
         </fieldset>
         <fieldset>
             <legend> Storm Information</legend>
-            <label>Storm Date:<input type="date" name="StormDate"></label>
-            <label>Storm Time:<input type="time" name="StormTime"></label>
+            <label>Storm Date:<input type="date" name="StormDate"></label><br>
+            <label>Storm Time:<input type="time" name="StormTime"></label><br>
             <label>Storm Type:
-                <input name="storms" list="stormlist"></label>
+                <input name="storms" list="stormlist" placeholder="Select a Storm Type"></label>
             <datalist id="stormlist">
                 <option value="Hail">
                 <option value="Lightning">
                 <option value="Tornado">
             </datalist>
             <br>
-            <label class="flexly" for="rating">Rating: &nbsp;&nbsp;&nbsp;
+            <label class="flexly" for="rating">Storm severity: &nbsp;&nbsp;&nbsp;
                 <input type="range" id="rating" value="5" min="1" max="10" step="1" list="tickmarks" oninput="adjustRating(this.value)" onchange="adjustRating(this.value)">
                 <span id="ratingvalue">5</span>
             </label>
-    
             <datalist id="tickmarks">
                 <option value="0">
                 <option value="1">
@@ -168,7 +204,26 @@ input[type='checkbox']:checked {
                 <option value="9">
                 <option value="10">
             </datalist>
+            <div class="dropdown">
+                <label>Storm region:<br><br><select id="dropdown" name="dropdown">
+                    <option disabled>Select an option</option>
+                  <option value="Preston">Preston</option>
+                  <option value="Soda Springs">Soda Springs</option>
+                  <option value="fish haven">Fish Haven</option>
+                </label>
+                </select>
+              </div>
+              <br><br>
+              <legend>Are you in-danger level? <em>(Choose one)</em></legend>
+				<input type="radio" name="time" id="time1" value="8" checked>
+				<label for="time1">Yes</label>
+				<input type="radio" name="time" id="time2" value="9">
+				<label for="time2">No</label>
+              <br><br>
+                <label>Additional Information<input type="text" name="text"></label>
         </fieldset>
+        <br>
+        <button type="submit" value="Submit">Send Information</button>
     </form> 
 
 
