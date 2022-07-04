@@ -40,17 +40,11 @@
   left: 20px;
 }
 
- /* Container holding the image and the text */
- .container {
-  position: relative;
-}
-
-/* Bottom right text */
 .text-block {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  background-color: black;
+  background-color: rgba(0, 0, 0, 0.445);
   color: white;
   padding-left: 20px;
   padding-right: 20px;
@@ -63,16 +57,38 @@
     <source srcset="wdd230.jpeg" > 
     <img class="large" src="wdd230.jpeg" alt="hero image">
     <div class="top-right"><b>Large</b></div>
-    <br>
+    <div class="text-block">
+    <h2>Weather Summary:</h2>
+		<p>Currently: 72˚ </p>
+	    <p>High: 78˚ </p>
+		<p>Wind Chill: 34˚ </p>
+		<p>Humidity: 40% </p>
+	    <p>Wind Speed: 5 mph</p>
+    </div>
+    <br><br>
     <source  srcset="wdd230.jpeg">
     <img class="medium" src="wdd230.jpeg" alt="hero image2" >
     <div class="top-left"><b>Medium</b></div>
-    <br>
+    <div class="text-block">
+    <h2>Weather Summary:</h2>
+        <p>Currently: 72˚ </p>
+        <p>High: 78˚ </p>
+        <p>Wind Chill: 34˚ </p>
+        <p>Humidity: 40% </p>
+        <p>Wind Speed: 5 mph</p>
+    </div>
+    <br><br>
     <source  srcset="wdd230.jpeg"> 
     <img class="small"src="wdd230.jpeg" alt="hero image" >
     <div class="top-lefts"><b>Small</b></div>
-    
-</div>
 <br>
+    <div class="text-block">
+        <h2>Weather Summary:</h2>
+            <p>Currently: 72˚ </p>
+            <p>High: 78˚ </p>
+            <p>Wind Chill: 34˚ </p>
+            <p>Humidity: 40% </p>
+            <p>Wind Speed: 5 mph</p>
+        </div>
 </body>
 </html>
