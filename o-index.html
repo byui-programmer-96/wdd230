@@ -4,23 +4,57 @@
 <meta charset="utf-8">
 <title>W03 Assignment</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="mystyle.css">
-<script src="#js"></script>
-<script src="#js"></script>
+<style>
+    .container {
+  position: relative;
+  text-align: center;
+  color: white;
+}
+.top-right {
+  position: absolute;
+  top: 90px;
+  right: 16px;
+}
+.small{
+    max-width: 100%;
+    max-height: 100px;
+}
+.large{
+    max-width: 100%;
+    max-height: 700px
+}
+.medium{
+ max-width: 100%;
+ max-height: 500px
+}
+
+.top-left {
+  position: absolute;
+  top: 8px;
+  left: 16px;
+}
+
+.bottom-right {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+}
+
+</style>
 </head>
 <body>
     <div id="container">
     <source srcset="wdd230.jpeg" > 
     <img class="large" src="wdd230.jpeg" alt="hero image">
-    <div class="large">Large</div>
+    <div class="top-right"><b>Large</b></div>
     <br>
     <source  srcset="wdd230.jpeg">
     <img class="medium" src="wdd230.jpeg" alt="hero image2" >
-    <div class="medium">Medium</div>
+    <div class="bottom-right"><b>Medium</b></div>
     <br>
     <source  srcset="wdd230.jpeg"> 
     <img class="small"src="wdd230.jpeg" alt="hero image" >
-    <div class="small">Small</div>
+    <div class="top-left"><b>Small</b></div>
 </div>
 <br>
 </body>
