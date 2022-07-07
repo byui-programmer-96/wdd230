@@ -1,4 +1,4 @@
-const apiURL = "http://api.openweathermap.org/data/3.0/onecall/timemachine?lat=39.099724&lon=-94.578331&dt=1643803200&appid={fc604e0bab14243d24f022dc6e463c28}";
+const apiURL = "https://api.openweathermap.org/data/2.5/weather?lat=42.096291&lon=-111.876640&appid=6289b54b514cc72eac43e624d0af5cc";
 fetch(apiURL)
   .then((response) => response.json())
   .then((jsObject) => {
@@ -9,3 +9,4 @@ fetch(apiURL)
   document.getElementById('imagesrc').textContent = imagesrc;  // informational specification only
   document.getElementById('icon').setAttribute('src', imagesrc);  // focus on the setAttribute() method
   document.getElementById('icon').setAttribute('alt', desc);
+ 
