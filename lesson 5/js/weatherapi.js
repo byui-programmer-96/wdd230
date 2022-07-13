@@ -1,104 +1,97 @@
-const timeEl = document.getElementById('time');
-const dateEl = document.getElementById('date');
-const currentWeatherItemsEl = document.getElementById('current-weather-items');
-const timezone = document.getElementById('time-zone');
-const countryEl = document.getElementById('country');
-const weatherForecastEl = document.getElementById('weather-forecast');
-const currentTempEl = document.getElementById('current-temp');
-
-
-const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const API_KEY ='49cc8c821cd2aff9af04c9f98c36eb74';
-
-setInterval(() => {
-    const time = new Date();
-    const month = time.getMonth();
-    const date = time.getDate();
-    const day = time.getDay();
-    const hour = time.getHours();
-    const hoursIn12HrFormat = hour >= 13 ? hour %12: hour
-    const minutes = time.getMinutes();
-    const ampm = hour >=12 ? 'PM' : 'AM'
-
-    timeEl.innerHTML = (hoursIn12HrFormat < 10? '0'+hoursIn12HrFormat : hoursIn12HrFormat) + ':' + (minutes < 10? '0'+minutes: minutes)+ ' ' + `<span id="am-pm">${ampm}</span>`
-
-    dateEl.innerHTML = days[day] + ', ' + date+ ' ' + months[month]
-
-}, 1000);
-
-getWeatherData()
-function getWeatherData () {
-    navigator.geolocation.getCurrentPosition((success) => {
-        
-        let {latitude, longitude } = success.coords;
-
-        fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${latitude}&lon=${longitude}&exclude=hourly,minutely&units=metric&appid=${API_KEY}`).then(res => res.json()).then(data => {
-
-        console.log(data)
-        showWeatherData(data);
-        })
-
-    })
-}
-
-function showWeatherData (data){
-    let {humidity, pressure, sunrise, sunset, wind_speed} = data.current;
-
-    timezone.innerHTML = data.timezone;
-    countryEl.innerHTML = data.lat + 'N ' + data.lon+'E'
-
-    currentWeatherItemsEl.innerHTML = 
-    `<div class="weather-item">
-        <div>Humidity</div>
-        <div>${humidity}%</div>
-    </div>
-    <div class="weather-item">
-        <div>Pressure</div>
-        <div>${pressure}</div>
-    </div>
-    <div class="weather-item">
-        <div>Wind Speed</div>
-        <div>${wind_speed}</div>
-    </div>
-    <div class="weather-item">
-        <div>Sunrise</div>
-        <div>${window.moment(sunrise * 1000).format('HH:mm a')}</div>
-    </div>
-    <div class="weather-item">
-        <div>Sunset</div>
-        <div>${window.moment(sunset*1000).format('HH:mm a')}</div>
-    </div>
-    
-    
-    `;
-
-    let otherDayForcast = ''
-    data.daily.forEach((day, idx) => {
-        if(idx == 0){
-            currentTempEl.innerHTML = `
-            <img src="http://openweathermap.org/img/wn//${day.weather[0].icon}@4x.png" alt="weather icon" class="w-icon">
-            <div class="other">
-                <div class="day">${window.moment(day.dt*1000).format('dddd')}</div>
-                <div class="temp">Night - ${day.temp.night}&#176;C</div>
-                <div class="temp">Day - ${day.temp.day}&#176;C</div>
+const app = {
+  init: () => {
+    document
+      .getElementById('btnGet')
+      .addEventListener('click', app.fetchWeather);
+    document
+      .getElementById('btnCurrent')
+      .addEventListener('click', app.getLocation);
+  },
+  fetchWeather: (ev) => {
+    //use the values from latitude and longitude to fetch the weather
+    let lat = document.getElementById('latitude').value;
+    let lon = document.getElementById('longitude').value;
+    let key = '06cc7efd0e5386068ec3c390bcfd0183';
+    let lang = 'en';
+    let units = 'metric';
+    let url = `http://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${key}&units=${units}&lang=${lang}`;
+    //fetch the weather
+    fetch(url)
+      .then((resp) => {
+        if (!resp.ok) throw new Error(resp.statusText);
+        return resp.json();
+      })
+      .then((data) => {
+        app.showWeather(data);
+      })
+      .catch(console.err);
+  },
+  getLocation: (ev) => {
+    let opts = {
+      enableHighAccuracy: true,
+      timeout: 1000 * 10, //10 seconds
+      maximumAge: 1000 * 60 * 5, //5 minutes
+    };
+    navigator.geolocation.getCurrentPosition(app.ftw, app.wtf, opts);
+  },
+  ftw: (position) => {
+    //got position
+    document.getElementById('latitude').value =
+      position.coords.latitude.toFixed(2);
+    document.getElementById('longitude').value =
+      position.coords.longitude.toFixed(2);
+  },
+  wtf: (err) => {
+    //geolocation failed
+    console.error(err);
+  },
+  showWeather: (resp) => {
+    console.log(resp);
+    let row = document.querySelector('.weather.row');
+    //clear out the old weather and add the new
+    // row.innerHTML = '';
+    row.innerHTML = resp.daily
+      .map((day, idx) => {
+        if (idx <= 2) {
+          let dt = new Date(day.dt * 1000); //timestamp * 1000
+          let sr = new Date(day.sunrise * 1000).toTimeString();
+          let ss = new Date(day.sunset * 1000).toTimeString();
+          return `<div class="col">
+              <div class="card">
+              <h5 class="card-title p-2">${dt.toDateString()}</h5>
+                <img
+                  src="http://openweathermap.org/img/wn/${
+                    day.weather[0].icon
+                  }@4x.png"
+                  class="card-img-top"
+                  alt="${day.weather[0].description}"
+                />
+                <div class="card-body">
+                  <h3 class="card-title">${day.weather[0].main}</h3>
+                  <p class="card-text">High ${day.temp.max}&deg;C Low ${
+            day.temp.min
+          }&deg;C</p>
+                  <p class="card-text">High Feels like ${
+                    day.feels_like.day
+                  }&deg;C</p>
+                  <p class="card-text">Pressure ${day.pressure}mb</p>
+                  <p class="card-text">Humidity ${day.humidity}%</p>
+                  <p class="card-text">UV Index ${day.uvi}</p>
+                  <p class="card-text">Precipitation ${day.pop * 100}%</p>
+                  <p class="card-text">Dewpoint ${day.dew_point}</p>
+                  <p class="card-text">Wind ${day.wind_speed}m/s, ${
+            day.wind_deg
+          }&deg;</p>
+                  <p class="card-text">Sunrise ${sr}</p>
+                  <p class="card-text">Sunset ${ss}</p>
+                </div>
+              </div>
             </div>
-            
-            `
-        }else{
-            otherDayForcast += `
-            <div class="weather-forecast-item">
-                <div class="day">${window.moment(day.dt*1000).format('ddd')}</div>
-                <img src="http://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png" alt="weather icon" class="w-icon">
-                <div class="temp">Night - ${day.temp.night}&#176;C</div>
-                <div class="temp">Day - ${day.temp.day}&#176;C</div>
-            </div>
-            
-            `
+          </div>`;
         }
-    })
+      })
+      .join(' ');
+  },
+};
 
-
-    weatherForecastEl.innerHTML = otherDayForcast;
-}
+app.init();
