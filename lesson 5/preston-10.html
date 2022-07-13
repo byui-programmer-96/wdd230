@@ -9,12 +9,53 @@
 <script src="weatherapi.js"></script>
 </head>
 <body>
-<h2>Weather Summary:</h2>
-<p>High:</p> 
-<p>Low:</p>
-<p>Temperature:</p>
-<p>Wind Chill: F˚</p>
-<p>Wind Speed:</p>
-<p>Humidity:</p>
+<div src="weatherapi.js">
+    {
+        "coord": {
+          "lon": -111.8766,
+          "lat": 42.0963
+        },
+        "weather": [
+          {
+            "id": 803,
+            "main": "Clouds",
+            "description": "broken clouds",
+            "icon": "04d"
+          }
+        ],
+        "base": "stations",
+        "main": {
+          "temp": 302.71,
+          "feels_like": 302.15,
+          "temp_min": 300.66,
+          "temp_max": 305.43,
+          "pressure": 1012,
+          "humidity": 38,
+          "sea_level": 1012,
+          "grnd_level": 864
+        },
+        "visibility": 10000,
+        "wind": {
+          "speed": 4.06,
+          "deg": 205,
+          "gust": 7.34
+        },
+        "clouds": {
+          "all": 67
+        },
+        "dt": 1657731772,
+        "sys": {
+          "type": 2,
+          "id": 2010024,
+          "country": "US",
+          "sunrise": 1657713791,
+          "sunset": 1657767776
+        },
+        "timezone": -21600,
+        "id": 5604473,
+        "name": "Preston",
+        "cod": 200
+      }
+    
 </body>
 </html>
