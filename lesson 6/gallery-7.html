@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Gallery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+* {
+  box-sizing: border-box;
+}
+
+img{
+  max-width: 300px;
+  max-height: 300px;
+  box-shadow: 10px 10px;
+}
+
+.row {
+  display: flex;
+}
+
+/* Create three equal columns that sits next to each other */
+.column {
+  flex: 33.33%;
+  padding: 5px;
+}
+body{
+  background-image: url("Rain.jpg");
+ color: white;
+}
+div.column:hover {
+  border: 1px solid rgba(18, 18, 17, 0.379);
+}
+div.desc {
+  padding: 15px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<h2>W04 ✅ Assignment: The Gallery Page </h2>
+
+<div class="row">
+  <div class="column">
+    <img src="Alaska coast ranges.jpg" alt="Mountains" style="width:100%">
+    <div class="desc">Moutain ranges in Alaska</div>
+  </div>
+  <div class="column">
+    <img src="Cloud-to-ground lightning.jpg" alt="lightning" style="width:100%">
+    <div class="desc">Cloud to ground lightning</div>
+  </div>
+  <div class="column">
+    <img src="North miami.jpg" alt="city veiw" style="width:100%">
+    <div class="desc">Lighting storm in North Miami</div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="column">
+    <img src="Doppler.jpg" alt="doppler radar" style="width:100%" loading="lazy">
+    <div class="desc">A Doppler on Wheels radar tracks an intense supercell thunderstorm west of Guthrie. </div>
+  </div>
+  <div class="column">
+    <img src="noaa-NO1rvBmC1uI-unsplash.jpg" alt="Waves" style="width:100%"loading="lazy">
+    <div class="desc">Autumn waves and sunshine on the Central Oregon coast</div>
+  </div>
+  <div class="column">
+    <img src="photo-1492011221367-f47e3ccd77a0.avif" alt="lightning" style="width:100%"loading="lazy">
+    <div class="desc">A beautiful lighting storm</div>
+  </div>
+</div>
+<div class="row">
+  <div class="column">
+    <img src="Rainbow.jpg" alt="Rainbow" style="width:100%"loading="lazy">
+    <div class="desc">Rainbow Over the Valles Grande. The closest city to this location is Los Alamos.</div>
+  </div>
+  <div class="column">
+    <img src="tornado_in_a_field.jpg" alt="Tornado" style="width:100%"loading="lazy">
+    <div class="desc">A tornado thaat touched down in Wyoming, United States</div>
+  </div>
+  <div class="column">
+    <img src="VORTEX2_vehicles.jpg" alt="VORTEX2 vehicles" style="width:100%"loading="lazy">
+    <div class="desc">A fleet of VORTEX2 vehicles tracks a supercell thunderstorm near Dumas. The blue-green color in the cloud is associated with large hail. </div>
+  </div>
+</div>
+</body>
+</html>

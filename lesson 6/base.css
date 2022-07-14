@@ -1,0 +1,126 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body{
+    font-size: 18px;
+}
+
+main, footer {
+    max-width: 800px;
+    margin: 0, auto;
+}
+
+header{
+    margin: 1rem auto;
+    border: 1px solid rgb(19, 18, 18);
+    padding: 5rem;
+    background-color: rgb(146, 12, 68);
+    display: grid; 
+    grid-template-columns: 200px, 1fr ;
+    text-align: center;
+    max-width: 800px;
+    margin: 0, auto;
+}
+
+h1, h2, h3, h4, h5, h6{
+  text-align: left;
+	font-size: 30px;
+	text-shadow: .25rem .25rem .75rem #333;
+	margin-bottom: 1rem;
+}
+
+.herodiv {
+	margin: 10px auto;
+	position: fixed;
+  top: 90px;
+  bottom: 250px;
+  left: 900px;
+  width: 285px;
+  height: 300px;   
+  box-shadow: 10px 10px 10px 12px lightblue;
+}
+
+.topright {
+  position: absolute;
+  top: 200px;
+  right: 200px;
+}
+
+img { 
+  width: 100%;
+  height: auto;
+}
+
+p {
+	margin: 0;
+}
+footer{
+    margin: 1rem auto;
+    border: 1px solid rgb(19, 18, 18);
+    padding: 5rem;
+    background-color: rgb(146, 12, 68);
+    display: grid; 
+    grid-template-columns: 200px, 1fr ;
+    align-items: center;
+}
+
+h2{
+    display: grid; 
+    grid-template-columns: 200px, 1fr ;
+    align-items: center;
+}
+
+h1 {
+align-items: right;
+}
+
+header {
+    background: hsl(144, 7%, 29%);
+    width: 70.1%;
+    margin-left: 15%;
+    height: 100px;
+    border-radius: 10px;
+    background-color: pink;
+  }
+  h1,
+  h2,
+  h2 {
+    padding-left: 35%;
+    padding-top: 25px;
+    color: black;
+  }
+  .item {
+    margin-left: 13.5%;
+  }
+  .item ul a {
+    text-decoration: none;
+    color: blueviolet;
+  }
+  footer {
+    background: hsl(144, 7%, 29%);
+    width: 70.1%;
+    margin-left: 15%;
+    height: 100px;
+    border-radius: 10px;
+    color: black;
+    background-color: pink;
+  }
+  .BYU {
+    color: pink;
+    text-decoration: none;
+    margin-left: 250px;
+  }
+  .photo {
+    margin-left: 68%;
+    box-shadow: 5px 5px 5px #999;
+    width: 240px;
+    position: absolute;
+    top: 30px;
+  }
+  .java {
+    margin-left: 200px;
+  }
+  
+
