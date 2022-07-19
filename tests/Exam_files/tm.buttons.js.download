@@ -1,0 +1,44 @@
+jQuery(document).ready(function () {
+    detectTmButtons(document);
+})
+
+function detectTmButtons(element) {
+    var buttons = $(element).find('a.btn-small,a.btn-big,button.or.btn-small');
+    for (var i in buttons) {
+        var btn = buttons.eq(i);
+        var text = btn.text();
+        btn.html('');
+        jQuery('<div class="left-side">&nbsp;</div><div class="right-side">' + text + '</div>').appendTo(btn);
+    }
+}
+
+function centerObject(obj, fixX, fixY) {
+    if ((typeof (fixX)).toLowerCase() != 'number')
+        fixX = 0;
+    if ((typeof (fixY)).toLowerCase() != 'number')
+        fixY = 0;
+
+    jQuery(obj).css('margin', '0');
+
+    var top = (jQuery(window).height() - jQuery(obj).outerHeight()) / 2 + jQuery(window).scrollTop() + fixY;
+    var left = (jQuery(window).width() - jQuery(obj).outerWidth()) / 2 + jQuery(window).scrollLeft() + fixX;
+
+    if (top < 0)
+        top = 0;
+    if (left < 0)
+        left = 0;
+
+    jQuery(obj).css("top", top + "px");
+    jQuery(obj).css("left", left + "px");
+
+}
+
+function copyText(text) {
+    
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand("copy");
+    textArea.remove();
+}

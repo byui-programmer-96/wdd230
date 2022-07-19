@@ -1,0 +1,588 @@
+function getHotKeyValue(code) {
+    return $('#hotKeys span[data-code="' + code + '"]').text();
+}
+
+
+function Player(sources, parent, text) {
+
+    try {
+
+        this.track = new Audio();
+        for (var type in sources) {
+            this.addSource(sources[type], type);
+        }
+        this.track.volume = 0.6;
+
+        this.parent = parent;
+        selfobj = this;
+
+        this.curTime = 0;
+        this.rwTime = 5;
+        this.rwTimeLow = 2;
+        this.isStopped = false;
+        this.timer = setInterval(function () { selfobj.update(); }, 500);
+
+        this.lblTime = $('<div class="counter">00:00</div>');
+        this.trackBox = $('<div class="prog-box"></div>');
+        this.trackBar = $('<div class="prog-bar"></div>');
+
+        this.loadBar = $('<div class="load-bar">');
+        this.loadBox = this.trackBox;
+        this.loadDisplay = $('<span class="load-display">0%</span>');
+
+        this.btnForward = $('<a class="button forward" href="javascript:void(0);">�</a>');
+        this.btnToggle = $('<a class="button toggle" href="javascript:void(0);">play</a>');
+        this.btnBack = $('<a class="button back" href="javascript:void(0);">�</a>');
+
+        this.btnVolUp = $('<a class="up" href="javascript:void(0);">�</a>');
+        this.btnVolDown = $('<a class="down" href="javascript:void(0);">�</a>');
+        this.volumeBox = $('<div class="vol-box"></div>');
+        this.volumeBar = $('<div class="vol-bar"></div>');
+
+        this.btnPedal = $('<span class="tm-tooltip-parent"><span class="el el-th-list el-rotate-270 btnPedal"></span><span class="tm-tooltip">' + text.pedal + '</span></span>');
+
+        this.initialize();
+    } catch (e) {
+        alert("Player can not be initialized [" + e.Description + "]");
+    }
+}
+
+Player.prototype = {
+    onStateChange: null,
+    onEventFired: null,
+
+    textElementSelector : '#Text, #answer',
+
+    initialize: function () {
+        ePlayer = $('<div class="player"></div>');
+
+        eButtons = $('<div class="buttons"></div>');
+        this.btnBack.appendTo(eButtons);
+        this.btnToggle.appendTo(eButtons);
+        this.btnForward.appendTo(eButtons);
+        eButtons.appendTo(ePlayer);
+
+        eReadOut = $('<div class="readout"></div>');
+        this.lblTime.appendTo(eReadOut);
+        this.loadDisplay.appendTo(eReadOut);
+        eProgress = $('<div class="progress"></div>');
+        this.trackBar.appendTo(this.trackBox);
+        this.loadBar.appendTo(this.trackBox);
+        this.trackBox.appendTo(eProgress);
+        eProgress.appendTo(eReadOut);
+        eReadOut.appendTo(ePlayer);
+
+        eVolume = $('<div class="volume"></div>');
+        this.btnVolDown.appendTo(eVolume);
+        this.volumeBar.appendTo(this.volumeBox);
+        this.volumeBox.appendTo(eVolume);
+        this.btnVolUp.appendTo(eVolume);
+        eVolume.appendTo(ePlayer);
+
+        var pedalBtnPanel = $('<div class="pedal"></div>');
+        this.btnPedal.appendTo(pedalBtnPanel);
+        if (isPedalEnabled) {
+            pedalBtnPanel.appendTo(ePlayer);
+        }
+
+        ePlayer.appendTo($(this.parent));
+
+        ePlayer.on('click', '.toggle', this.reverseMode);
+        ePlayer.on('click', '.forward', this.forward);
+        ePlayer.on('click', '.back', this.back);
+        ePlayer.on('click', '.up', this.volumeUp);
+        ePlayer.on('click', '.down', this.volumeDown);
+        ePlayer.on('click', '.vol-box', this.grabVolume);
+        ePlayer.on('click', '.prog-box', this.grabTrackBar);
+
+        this.setBar("volume", this.track.volume);
+
+        this.track.load();
+
+
+        // Pedal support
+
+        try {
+            if (typeof chrome !== 'undefined') {
+
+                var jWindow = $(window);
+
+                if (true) {
+                    var port = chrome.runtime.connect('ekchlkccgoacdfccmicachmhgijgdkhi');
+
+                    if (port) {
+                        port.onMessage.addListener(function (event) {
+                            jWindow.trigger(event);
+                        });
+                    }
+                }
+
+                jWindow.off('transcribeme.Connected').on('transcribeme.Connected', function () { selfobj.btnPedal.addClass("active"); });
+                jWindow.off('transcribeme.Disconnected').on('transcribeme.Disconnected', function () { selfobj.btnPedal.removeClass("active") });
+                jWindow.off('transcribeme.play').on('transcribeme.play', this.play_o);
+                jWindow.off('transcribeme.pause').on('transcribeme.pause', this.pause_o);
+                jWindow.off('transcribeme.rewind').on('transcribeme.rewind', this.back);
+                jWindow.off('transcribeme.forward').on('transcribeme.forward', this.forward);
+                jWindow.off('transcribeme.playrewind').on('transcribeme.playrewind', this.back);
+                jWindow.off('transcribeme.playforward').on('transcribeme.playforward', this.forward);
+            }
+        } catch (e) {
+            console.error('Pedal initializing error!');
+        }
+
+
+    },
+
+    addSource: function (src, type) {
+        var source = document.createElement('source');
+        source.setAttribute('src', src);
+        if (type != null) {
+            source.setAttribute('type', type);
+        }
+        this.track.appendChild(source);
+    },
+
+    setBar: function (name, value) {
+        var bar = $(this[name + "Bar"]);
+        value = Math.round(value * 100);
+        bar.css('width', value.toString() + '%');
+    },
+
+    grabBar: function (name, element) {
+        var xOffset = $(this[name + "Bar"]).position().left;
+        var max = $(this[name + "Box"]).width() - 2 * xOffset;
+        var pos = element.originalEvent.layerX - xOffset;
+        if (pos > max) {
+            pos = max;
+        }
+        if (pos < 0) {
+            pos = 0;
+        }
+        return pos / max;
+    },
+
+    play: function () {
+        if (this.onStateChange) {
+            this.onStateChange();
+        }
+
+        if (this.curTime > 0) {
+            this.track.currentTime = this.curTime;
+        }
+
+        this.track.play();
+        this.btnToggle.removeClass("pause");
+        this.btnToggle.addClass("play");
+
+        this.isStopped = false;
+
+        this.logAction('play');
+    },
+
+    play_o: function () {
+        if (selfobj.track.paused) {
+            selfobj.play();
+
+            this.isStopped = false;
+        }
+    },
+
+    pause_o: function () {
+        if (!selfobj.track.paused) {
+            selfobj.pause();
+        }
+    },
+
+    pause: function (isStopping) {
+        if (this.isStopped) {
+            return;
+        }
+
+        if (this.onStateChange) {
+            this.onStateChange();
+        }
+        this.track.pause();
+        this.curTime = this.track.currentTime;
+        if ((this.curTime - 1) > 0) {
+            this.curTime -= 1;
+        }
+        this.btnToggle.removeClass("play");
+        this.btnToggle.addClass("pause");
+
+        if (!isStopping) {
+            this.logAction('pause');
+        }
+    },
+
+    stop: function () {
+        if (this.isStopped) {
+            return;
+        }
+        this.track.currentTime = 0;
+        this.pause(true);
+
+        this.isStopped = true;
+
+        this.logAction('stop');
+    },
+
+    update: function () {
+        if (this.track.buffered.length == 0) {
+            return;
+        }
+        var buffered = this.track.buffered.end(0);
+
+        var loaded = buffered / this.track.duration;
+        if (loaded > 1) {
+            loaded = 1;
+        }
+
+        this.setBar("load", loaded);
+        this.loadDisplay.text(Math.floor(loaded * 100) + "%");
+        if (loaded == 1) {
+            this.loadDisplay.hide();
+        }
+
+        if (this.track.ended) {
+            this.stop();
+        }
+        this.showTime();
+        this.showTrackBar();
+    },
+
+    reverseMode: function () {
+        if (!selfobj.track.paused) {
+            selfobj.pause();
+        } else {
+            selfobj.play();
+        }
+    },
+
+    forward: function () {
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime + selfobj.rwTime;
+        if (newTime > selfobj.track.duration) {
+            selfobj.stop();
+        } else {
+            selfobj.curTime = selfobj.track.currentTime = newTime;
+        }
+        selfobj.update();
+
+        selfobj.logAction('forward');
+    },
+
+    back: function () {
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime - selfobj.rwTime;
+        if (newTime < 0) {
+            newTime = 0;
+        }
+        selfobj.curTime = selfobj.track.currentTime = newTime;
+        selfobj.update();
+
+        selfobj.logAction('back');
+    },
+
+    forwardLow: function () {
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime + selfobj.rwTimeLow;
+        if (newTime > selfobj.track.duration) {
+            selfobj.stop();
+        } else {
+            selfobj.curTime = selfobj.track.currentTime = newTime;
+        }
+        selfobj.update();
+
+        selfobj.logAction('forward-low');
+    },
+
+    backLow: function () {
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime - selfobj.rwTimeLow;
+        if (newTime < 0) {
+            newTime = 0;
+        }
+        selfobj.curTime = selfobj.track.currentTime = newTime;
+        selfobj.update();
+
+        selfobj.logAction('back-low');
+    },
+
+    showTime: function () {
+        var mins = Math.floor(this.track.currentTime / 60).toString();
+        if (mins.length < 2) {
+            mins = "0" + mins;
+        }
+        var secs = Math.floor(this.track.currentTime % 60).toString();
+        if (secs.length < 2) {
+            secs = "0" + secs;
+        }
+        this.lblTime.text(mins + ":" + secs);
+    },
+
+    showTrackBar: function () {
+        var pos = 0;
+        if (this.track.duration > 0) {
+            pos = this.track.currentTime / this.track.duration;
+        }
+        this.setBar("track", pos);
+    },
+
+    grabTrackBar: function (element) {
+        var value = selfobj.grabBar("track", element) * selfobj.track.duration;
+        selfobj.curTime = value;
+        selfobj.track.currentTime = value;
+        selfobj.update();
+    },
+
+    volumeUp: function () {
+        var curVolume = selfobj.track.volume + 0.1;
+        if (curVolume > 1) {
+            curVolume = 1;
+        }
+        selfobj.setVolume(curVolume);
+
+        selfobj.logAction('volume-up');
+    },
+
+    volumeDown: function () {
+        var curVolume = selfobj.track.volume - 0.1;
+        if (curVolume < 0) {
+            curVolume = 0;
+        }
+        selfobj.setVolume(curVolume);
+
+        selfobj.logAction('volume-down');
+    },
+
+    speedUp: function () {
+        if (selfobj.track.playbackRate < 1.0) {
+            selfobj.track.playbackRate = 1.0;
+        }
+        var curSpeed = selfobj.track.playbackRate + 0.1;
+        if (curSpeed > 1.5) {
+            curSpeed = 1.5;
+        }
+        selfobj.track.playbackRate = curSpeed;
+
+        selfobj.logAction('speed-up');
+    },
+
+    speedDown: function () {
+        var curSpeed = selfobj.track.playbackRate - 0.1;
+        if (curSpeed < 0.5) {
+            curSpeed = 0.5;
+        }
+        selfobj.track.playbackRate = curSpeed;
+
+        selfobj.logAction('speed-down');
+    },
+
+    takeTime: function (num) {
+        var textSelector = this.textElementSelector != undefined ? this.textElementSelector : '#Text';
+
+        var textElement = $(textSelector);
+        var ss = $("div.counter").text();
+        var txt = textElement.val();
+
+        var el = textElement.get(0);
+        var pos = 0;
+        if ('selectionStart' in el) {
+            pos = el.selectionStart;
+        } else if ('selection' in document) {
+            el.focus();
+            var sel = document.selection.createRange();
+            var selLength = document.selection.createRange().value.length;
+            sel.moveStart('character', -el.value.length);
+            pos = sel.value.length - selLength;
+        }
+
+        var str1 = txt.substring(0, pos);
+        var str2 = txt.substring(pos);
+        if (str2.length == 0) {
+            str2 = ' ';
+        }
+        if (num == '0') {
+            num = '?';
+        }
+        txt = str1 + "\nS" + num + " " + ss + " " + str2;
+
+        textElement.val(txt);
+
+        pos += 9;
+
+        if (el.setSelectionRange) {
+            el.setSelectionRange(pos, pos);
+        } else if (el.createTextRange) {
+            var range = el.createTextRange();
+            range.collapse(textSelector);
+            range.moveEnd('character', pos);
+            range.moveStart('character', pos);
+            range.select();
+        }
+
+        this.logAction('taketime');
+    },
+
+    takeEndTime: function () {
+        var textSelector = this.textElementSelector != undefined ? this.textElementSelector : '#Text';
+
+        var textElement = $(textSelector);
+        var ss = $("div.counter").text();
+        var txt = textElement.val();
+
+        var el = textElement.get(0);
+        var pos = 0;
+        if ('selectionStart' in el) {
+            pos = el.selectionStart;
+        } else if ('selection' in document) {
+            el.focus();
+            var sel = document.selection.createRange();
+            var selLength = document.selection.createRange().value.length;
+            sel.moveStart('character', -el.value.length);
+            pos = sel.value.length - selLength;
+        }
+
+        var str1 = txt.substring(0, pos);
+        var str2 = txt.substring(pos);
+        if (str2.length == 0) str2 = ' ';
+
+        txt = str1 + " END" + " " + ss + " " + str2;
+
+        textElement.val(txt);
+
+        pos += 11;
+
+        if (el.setSelectionRange) {
+            el.setSelectionRange(pos, pos);
+        } else if (el.createTextRange) {
+            var range = el.createTextRange();
+            range.collapse(textSelector);
+            range.moveEnd('character', pos);
+            range.moveStart('character', pos);
+            range.select();
+        }
+
+        this.logAction('takeendtime');
+    },
+
+    setVolume: function (value) {
+        this.track.volume = value;
+        this.setBar("volume", this.track.volume);
+    },
+
+    grabVolume: function (element) {
+        var value = selfobj.grabBar("volume", element);
+        selfobj.setVolume(value);
+    },
+
+    setTime: function () {
+        var textSelector = this.textElementSelector != undefined ? this.textElementSelector : '#Text';
+
+        var textElement = $(textSelector);
+        var txt = textElement.val();
+        var el = textElement.get(0);
+        var pos = 0;
+        if ('selectionStart' in el) {
+            pos = el.selectionStart;
+        } else if ('selection' in document) {
+            el.focus();
+            var sel = document.selection.createRange();
+            var selLength = document.selection.createRange().value.length;
+            sel.moveStart('character', -el.value.length);
+            pos = sel.value.length - selLength;
+        }
+
+        var str = txt.substring(pos - 5, pos + 5);
+        var sstr = new String(str);
+        var ppos = sstr.indexOf(":");
+        var sminutes = sstr.substring(ppos - 3, ppos);
+        var sseconds = sstr.substring(ppos + 1, ppos + 3);
+        var mins = parseInt(sminutes, 10);
+        var secs = parseInt(sseconds, 10);
+
+        var time = mins * 60 + secs;
+        if (time < selfobj.track.duration) {
+            if ((time - 1) > 0) time = time - 1;
+            selfobj.curTime = selfobj.track.currentTime = time;
+            selfobj.update();
+            selfobj.play();
+            $('#testmark').text("(" + mins + ":" + secs + ")");
+        }
+        else {
+            $('#testmark').text("(>)");
+        }
+
+        selfobj.logAction('settime');
+    },
+
+    bindHotkeys: function (element) {
+        var jElement = $(element);
+
+        jElement.bind("keydown", getHotKeyValue('PlayerPlayPause'), this.reverseMode);
+        jElement.bind("keydown", "ctrl+shift+;", this.pause_o);
+        jElement.bind("keydown", "ctrl+shift+'", this.play_o);
+        jElement.bind("keydown", "ctrl+shift+,", this.backLow);
+        jElement.bind("keydown", "ctrl+shift+.", this.forwardLow);
+        jElement.bind("keydown", "ctrl+shift+/", this.pause);
+        jElement.bind("keydown", "ctrl+alt+/", this.play);
+        jElement.bind("keydown", getHotKeyValue('PlayerBackward'), this.back);
+        jElement.bind("keydown", getHotKeyValue('PlayerForward'), this.forward);
+        jElement.bind("keydown", getHotKeyValue('PlayerVolumeUp'), this.volumeUp);
+        jElement.bind("keydown", getHotKeyValue('PlayerVolumeDown'), this.volumeDown);
+        jElement.bind("keydown", getHotKeyValue('PlayerSpeedDown'), this.speedDown);
+        jElement.bind("keydown", getHotKeyValue('PlayerSpeedUp'), this.speedUp);
+        jElement.bind("keydown", "alt+/", this.setTime);
+        jElement.bind("keydown", "ctrl+1", function () { selfobj.takeTime("1"); return false; });
+        jElement.bind("keydown", "ctrl+2", function () { selfobj.takeTime("2"); return false; });
+        jElement.bind("keydown", "ctrl+3", function () { selfobj.takeTime("3"); return false; });
+        jElement.bind("keydown", "ctrl+4", function () { selfobj.takeTime("4"); return false; });
+        jElement.bind("keydown", "ctrl+5", function () { selfobj.takeTime("5"); return false; });
+        jElement.bind("keydown", "ctrl+6", function () { selfobj.takeTime("6"); return false; });
+        jElement.bind("keydown", "ctrl+7", function () { selfobj.takeTime("7"); return false; });
+        jElement.bind("keydown", "ctrl+8", function () { selfobj.takeTime("8"); return false; });
+        jElement.bind("keydown", "ctrl+9", function () { selfobj.takeTime("9"); return false; });
+        jElement.bind("keydown", "ctrl+0", function () { selfobj.takeTime("0"); return false; });
+        jElement.bind("keydown", "ctrl+space", function () { selfobj.takeEndTime(); return false; });
+    },
+
+    bindExamHotkeys: function (element) {
+        var jElement = $(element);
+
+        jElement.unbind(".hotkeys");
+
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerPlayPause'), this.reverseMode);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+;", this.pause_o);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+'", this.play_o);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+,", this.backLow);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+.", this.forwardLow);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+/", this.pause);
+        jElement.bind("keydown.hotkeys", "ctrl+alt+/", this.play);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerBackward'), this.back);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerForward'), this.forward);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerVolumeUp'), this.volumeUp);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerVolumeDown'), this.volumeDown);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerSpeedDown'), this.speedDown);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerSpeedUp'), this.speedUp);
+
+    },
+
+    logAction: function (action) {
+        if ($.isFunction(this.onEventFired) && this.track) {
+            var descriptor = {
+                action: action,
+                position: this.track.currentTime,
+                duration: this.track.duration
+            };
+            this.onEventFired(descriptor);
+        }
+    }
+}

@@ -1,0 +1,80 @@
+/* btn-small */
+button.or.btn-small 
+{
+    color:#ffffff;
+    text-decoration: none;
+    font-family: Arial;
+    vertical-align:inherit;
+    border: none;
+    background-color: transparent;
+    padding: 0;
+}
+button.or.btn-small div.left-side {
+    background: url(/Content/btn-small.png) no-repeat;
+    padding: 5px 0 6px 5px;
+}
+button.or.btn-small div.right-side {
+    background: url(/Content/btn-small.png) no-repeat 100% 0;
+    padding: 5px 8px 6px 0;
+}
+button.or.btn-small div {
+  font-size: 12pt;
+  font-weight: bold;
+  display: inline-block;
+}
+
+
+a.btn-small div.left-side {
+    background: url(/Content/btn-small.png) no-repeat;
+    padding: 5px 0 6px 5px;
+}
+a.btn-small div.right-side {
+    background: url(/Content/btn-small.png) no-repeat 100% 0;
+    padding: 5px 8px 6px 0;
+}
+a.btn-small div {
+  font-size: 12pt;
+  font-weight: bold;
+  display: inline-block;
+}
+a.btn-small 
+{
+    color:#ffffff;
+    text-decoration: none;
+    font-family: Arial;
+    white-space:nowrap;
+}
+/* btn-big */
+a.btn-big div.left-side {
+    background: url(/Content/btn-big.png) no-repeat;
+    padding: 10px 0 24px 8px;
+}
+a.btn-big div.right-side {
+    background: url(/Content/btn-big.png) no-repeat 100% 0;
+    padding: 10px 23px 24px 0;
+}
+a.btn-big div {
+  font-size: 25px;
+  font-weight: bold;
+  display: inline-block;
+}
+a.btn-big 
+{
+    color:#ffffff;
+    text-decoration:none;
+    font-family: Arial;  
+}
+.btn147 
+{
+    background: url(/Content/btn_bg_147.png) no-repeat;
+    width:146px;
+    height:28px;
+    padding: 5px 8px 6px 5px;
+        color: #FFFFFF;
+    font-family: Arial;
+    text-decoration: none;
+    font-size: 12pt;
+    font-weight: bold;
+    border:none;
+    cursor:pointer;
+}

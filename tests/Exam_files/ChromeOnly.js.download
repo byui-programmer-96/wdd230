@@ -1,0 +1,22 @@
+﻿$(document).ready(function () {
+    if (!navigator.userAgent.match(/Chrome|CriOS/)) {
+        if (!location.host.match(/^127\.0\.0/) && !location.host.match(/testing\-/)) {
+            var data = $('#chromeOnlyPopup');
+            showDynPopUp(data);
+        }
+    }
+
+});
+
+function showDynPopUp(data) {
+    if ($('#dynpopup').length == 0) {
+        $('body').append('<div class="overlay" id="dynpopup" style="display:none"><div class="conts"></div></div>');
+    }
+    $('#dynpopup').show()
+        .width($(document).width())
+        .height($(document).height())
+        .css('top', '0')
+        .css('left', '0')
+        .find('.conts').append(data);
+     data.show();
+}

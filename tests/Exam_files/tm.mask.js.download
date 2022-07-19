@@ -1,0 +1,71 @@
+﻿function maskShow(title, message, content) {
+    resetMask();
+    $('#div-shared-mask').show();
+    if (title || message) {
+        if (title) {
+            $('#div-mask-title').css('font-size', title.length > 14 ? '32pt' : '42pt');
+            $('#div-mask-title').show();
+            $('#div-mask-title').html(title);
+        }
+        if (message) {
+            $('#div-mask-message').show();
+            $('#div-mask-message').append(message);
+        }
+        $('#div-shared-mask .div-row.div-mask-messagerow').slideDown();
+        //$('#div-shared-mask .div-row:first-child').show('fast', $('#div-shared-mask .div-row:first-child').slideDown());
+        //$('#div-shared-mask .div-row:first-child').slideDown();
+    }
+    if (content)
+        $('#div-mask-content').append(content);
+}
+
+function maskShowDialog(title, message, content) {
+    var msg = $('<span>' + (message ? message : '') + '<br/></span>');
+    var conLbl = content['confirmLabel'] ? content['confirmLabel'] : 'Confirm';
+    var cnLbl = content['cancelLabel'] ? content['cancelLabel'] : 'Cancel';
+    var btnYes = $('<span style="cursor:pointer;">[' + conLbl + ']</span>');
+    var btnNo = $('<span style="cursor:pointer;">[' + cnLbl + ']</span>');
+    btnYes.click(content['confirmHandler']).click(maskHide);
+    btnNo.click(content['cancelHandler']).click(maskHide);
+    msg.append(btnYes);
+    msg.append(btnNo);
+    maskShow(title, msg, null);
+}
+
+function maskShowAlert(title, message) {
+    var msg = $('<span>' + (message ? message : '') + '<br/></span>');
+    var btnYes = $('<span style="cursor:pointer;">[Ok]</span>');
+    btnYes.click(maskHide);
+    msg.append(btnYes);
+    maskShow(title, msg, null);
+}
+
+function maskHide() {
+    resetMask();
+}
+
+function resetMask() {
+    $('#div-shared-mask').hide();
+    $('#div-shared-mask .div-row.div-mask-messagerow').hide();
+    //$('#div-shared-mask .div-row:last-child').hide();
+    $('#div-mask-title').unbind();
+    $('#div-mask-message').unbind();
+    $('#div-mask-content').unbind();
+    $('#div-mask-title').html('');
+    $('#div-mask-message').html('');
+    $('#div-mask-content').html('');
+    $('#div-mask-title').hide();
+    $('#div-mask-message').hide();
+    //$('div-mask-content').hide();
+}
+
+//----- hide popups
+
+$('.ctrl-common-popup').on("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+$('html').on("click", function () {
+    $('.ctrl-common-popup').hide();
+});

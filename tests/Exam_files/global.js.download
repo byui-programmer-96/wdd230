@@ -1,0 +1,12 @@
+﻿$(document).ajaxError(function (event, jqxhr) {
+    if (jqxhr.status == 401 || jqxhr.status == 403) {
+        var loginHolder = $('#logindisplay');
+        if (loginHolder.length > 0) {
+            $(window).off();
+            var loginUrl = loginHolder.data('login');
+            if (loginUrl) {
+                location.href = loginUrl;
+            }
+        }
+    }
+});

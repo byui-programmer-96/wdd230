@@ -1,0 +1,327 @@
+﻿angular.module('transcribeme-workhub', ['Exam-localization'])
+    .controller('workhub-controller', function($scope, $translate) {
+        $scope.getLocalizableText = function(key) {
+            return $translate(key);
+        };
+    });
+
+var _qn = -1; // current question INDEX
+var _csn = -1; // current section INDEX
+var isSpeakerNamesEnabled = false;
+p = null;
+$(function () {
+    var grammarlyInstalled = $("body[data-gr-c-s-loaded]").length > 0;
+    if (!grammarlyInstalled) {
+        window.grammarly_affiliate = {
+            width: 160,
+            height: 42,
+            style: {
+                borderRadius: '0' 
+            },
+            affName: 'TranscribeMe',
+            affParameters: {
+                offer_id: 245,
+                aff_id: 10799
+            }
+        };
+        $.getScript("https://www.grammarly.com/js/affiliate_button.js");
+    }
+
+    var sectionName = $('.hd-sc[name="section.SectionName"]').val();
+    //get first unanswered question
+    var answer = "";
+    var num = -1;
+    do {
+        num++;
+        answer = $('.hd-qw[name="questions[' + num + '].Answer"]').val();
+        
+    } while (answer)
+    if(num > 0)
+        _qn = num - 2;
+
+    fetchNextQuestion();
+    $('.btn-exam-nextq').click(function () {
+        var isQa = $('.hd-qw[name="questions[' + _qn + '].IsQaEditor"]').val() === 'True';
+        var answerText = isQa ? $('.qa-editor span.spanblock span').html() : $('.text-exam-answer').val();
+if (!answerText) { alert("Answer is required"); } else {
+        $('.hd-qw[name="questions[' + _qn + '].Answer"]').val(answerText);
+        $('.text-exam-answer').val('');
+        $('.qa-editor').empty();
+        $('.text-exam-answer').focus();
+        var cont = fetchNextQuestion();
+        if (!cont) {
+            var nextSection = $('#NextSectionID').val();
+            if (nextSection && nextSection != -1) {
+                maskShow(angular.$localizeString('FinishedSectionMessage') + '"' + sectionName + '"', angular.$localizeString('PleaseWait'), null);
+            } else {
+                maskShow(angular.$localizeString('FinishedExamMessage'), angular.$localizeString('PleaseWait'), null);
+            }
+            $('.sbmt-exam-complete').trigger('click');
+        }}
+    });
+
+    var actionForm = $('#examForm');
+    actionForm.on('click', 'button', function() {
+        var button = $(this);
+
+        var action = button.data('action');
+        if (action) {
+            actionForm.ajaxFormUnbind();
+
+
+            actionForm.attr('action', action);
+
+            if (button.hasClass('btn-exam-save')) {
+                var isQa = $('.hd-qw[name="questions[' + _qn + '].IsQaEditor"]').val() === 'True';
+                var answerText = isQa ? $('.qa-editor span.spanblock span').html() : $('.text-exam-answer').val();
+if (!answerText) { alert("Answer is required"); } else {
+                $('.hd-qw[name="questions[' + _qn + '].Answer"]').val(answerText);
+
+                actionForm.ajaxForm();
+                actionForm.ajaxSubmit({ type: 'post', success: function() {
+                    $('.exam-saved').show();
+                } });}
+            } else {
+
+                
+                actionForm.submit();
+            }
+
+            
+        }
+    });
+
+
+
+    function fixDialog() {
+        var overlay = $(".ui-widget-overlay");
+        if (overlay) {
+            overlay.css({
+                position: 'fixed',
+                top: '0'
+            });
+
+            var dialog = $(".ui-dialog");
+            if (dialog.length > 0) {
+                var pos = dialog.position();
+                if (pos) {
+                    dialog.css({
+                        position: 'fixed',
+                        top: pos.y
+                    });
+                }
+            }
+        }
+    }
+
+    function toggleDlg(element) {
+        var isOpen = element.dialog('isOpen');
+        if (isOpen) {
+            hideDlg(element);
+        } else {
+            showDlg(element);
+        }
+    }
+
+    function hideDlg(element) {
+        if (element.length > 0) {
+            element.dialog('close');
+        }
+    }
+
+    function showDlg(element) {
+        if (element.length > 0) {
+            element.dialog('open');
+        }
+    }
+
+    var hotkeysBtn = $('#openHotkeysBtn');
+    hotkeysBtn.off('click');
+    hotkeysBtn.click(function() {
+        var hotkeysPopup = $('#hotkeys-popup');
+        hotkeysPopup.dialog({
+            autoOpen: false,
+            modal: false,
+            width: 350,
+            create: function() {
+                fixDialog();
+            }
+        });
+        toggleDlg(hotkeysPopup);
+    });
+
+    var jobElementSelector = 'span.spanblock';
+    var jobEditableElementSelector = 'span.spanblock > [contenteditable]';
+    var __currentBlockIndex = null;
+    var __isAfterHop = false;
+
+    var editor = $(".qa-editor");
+
+    editor.click(function() {
+        $('.qa-editor .spanblock span').focus();
+    });
+
+    editor.on('focusin', jobElementSelector, function () {
+        var element = $(this);
+
+        console.log('focus  #' + element.index() + ' -> ' + element.text());
+
+        var color = element.data('color');
+        element.css('border-color', color);
+        element.find("[contenteditable]").css('background-color', '#B5CFFE'); //transparent
+
+        if (__currentBlockIndex !== element.index() || !element.is(p.currentBlock)) {
+            
+            __currentBlockIndex = element.index();
+            p.setTextBlock(element);
+            //if (!__noninteract) {
+            var start = element.data('start');
+            var duration = element.data('duration');
+            var end = parseFloat(start) + parseFloat(duration);
+            if (!__isAfterHop) {
+                p.playRange(start, end);
+            } else {
+                p.setRange(start, end);
+                __isAfterHop = false;
+            }
+            //}
+        }
+    });
+
+
+
+
+});
+
+function fetchNextQuestion() {
+    $('.exam-saved').hide();
+
+    var jobElementSelector = 'span.spanblock';
+
+    _qn++;
+    var sectionInd = $('.hd-qw[name="sectionreference[' + _qn + ']"]').val();
+    if (sectionInd) {
+        $('b.b-qw-order').html(_qn + 1);
+
+        var qid = $('.hd-qw[name="questions[' + _qn + '].QuestionID"]').val();
+
+        $('.audio-exam').hide();
+
+
+        var isQa = $('.hd-qw[name="questions[' + _qn + '].IsQaEditor"]').val() === 'True';
+
+        //debugger;
+        var playerElement = $('.audio-exam[data-qid="' + qid + '"]');
+
+
+
+        if (playerElement.length > 0) {
+            playerElement.css('display', 'block');
+
+            var textPedal = playerElement.data('textpedal');
+
+            var audioFile = $('.hd-qw[name="questions[' + _qn + '].Audio"]').val();
+
+            $.post('/exams/get-audio',
+                { audio: audioFile },
+                function (result) {
+
+                    var sources = new Array();
+                    var audioSource = result.url;
+                    sources["audio/mpeg"] = audioSource;
+                    if (p) {
+                        p.stop();
+                    }
+                    if (isQa) {
+                        p = new QaPlayer(sources, playerElement, { pedal: textPedal });
+                        p.initHtml($(".qa-editor"));
+                        p.bindHotkeys(document);
+                        p.bindHotkeys($(".qa-editor .spanblock span"));
+
+                        p.pagemask.click(function () {
+                            p.hideSpeakerPopup();
+                            $('.page-popup').hide();
+                            $(this).hide();
+                        });
+
+                        $(".qa-editor").on('paste', jobElementSelector, function (je) {
+                            //$(this).data('isDirty', true);
+                            //e.preventDefault();
+                            //e.stopPropagation();
+                            console.log('clear paste')
+                            e = je.originalEvent;
+                            e.preventDefault();
+                            e.stopPropagation();
+                            var text = e.clipboardData.getData('text/plain');
+                            text = text.replace(/\r\n/g, '<br/>');
+                            text = text.replace(/\n/g, '<br/>');
+                            text = text.replace(/</g, '&lt;');
+                            text = text.replace(/>/g, '&gt;');
+                            text = $("<div/>").html(text).text(); //decode text
+                            if (window.getSelection && window.getSelection().getRangeAt) {
+                                var range = window.getSelection().getRangeAt(0);
+                                var node = range.createContextualFragment(text);
+                                range.deleteContents();
+                                range.insertNode(node);
+                            } else if (document.selection && document.selection.createRange) {
+                                document.selection.createRange().pasteHTML(text);
+                            }
+                        });
+
+                    } else {
+                        p = new Player(sources, playerElement, { pedal: textPedal });
+                        p.bindExamHotkeys(document);
+                        p.bindExamHotkeys($(".text-exam-answer"));
+                    }
+
+                });
+
+
+        }
+
+
+        if (isQa) {
+            
+        } else {
+            
+        }
+        
+
+
+        
+        //p.onStateChange = function () {
+        //    $("#Text").focus();
+        //};
+
+        var questionName = $('.hd-qw[name="questions[' + _qn + '].Name"]').val();
+        var questionInfo = $('.hd-qw[name="questions[' + _qn + '].Info"]').val();
+        var answerText = $('.hd-qw[name="questions[' + _qn + '].Answer"]').val();
+        var placeHolderText = $('.hd-qw[name="questions[' + _qn + '].AnswerPlaceholder"]').val();
+        
+
+
+        $('.span-exam-question-name').html(questionName);
+        $('.span-exam-question-info').html(questionInfo);
+
+        var txt = answerText ? answerText : $('<textarea/>').html(placeHolderText).text();
+
+        if (isQa) {
+            $('.qa-editor').show();
+            $('.text-exam-answer').hide();
+
+            var spanblock = $('<span class="spanblock"></span>');
+            var innerSpan = $("<span contenteditable='true'></span>");
+            innerSpan.html(txt);
+            spanblock.append(innerSpan);
+
+            $('.qa-editor').empty();
+            $('.qa-editor').append(spanblock);
+        } else {
+            $('.qa-editor').hide();
+            $('.text-exam-answer').show();
+            $('.text-exam-answer').val(txt);
+        }
+        return true;
+    }
+    return false;
+}

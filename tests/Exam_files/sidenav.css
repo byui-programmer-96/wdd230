@@ -1,0 +1,45 @@
+﻿sidenav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 470px;
+    background: rgba(20,20,20,.98);
+    color: #eee;
+    z-index: 10000;
+    transform: translate3d(0,0,0);
+    transition: transform .3s;
+}
+
+sidenav:not(.active) {
+    transform: translate3d(-100%,0,0);
+}
+
+sidenav > .close {
+    color: #fff;
+    opacity: .7;
+    top: 15px;
+    right: 20px;
+    position: absolute;
+    background: transparent;
+    border: 0;
+    font-size: 40px;
+    outline: 0;
+}
+
+sidenav > .close:hover {
+    color: currentColor;
+    opacity: 1;
+}
+
+sidenav ::-webkit-scrollbar {
+    background: rgba(0,0,0,.4);
+}
+
+sidenav ::-webkit-scrollbar-thumb {
+    background: rgba(200,200,200,.4);
+}
+
+sidenav ::-webkit-scrollbar-thumb:hover {
+    background: rgba(200,200,200,.3);
+}

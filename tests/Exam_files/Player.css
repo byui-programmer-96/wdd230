@@ -1,0 +1,455 @@
+.player {
+    width: 395px;
+    height: 42px;
+    padding: 18px 10px 17px;
+    position: relative;
+    z-index: 2;
+    font-family: sans-serif;
+    background: #bbb;
+}
+
+.player .button{
+    padding: 17px;
+    font-size: 0pt;
+    color: transparent;
+    margin: 0 1px;
+    
+}
+.player .toggle{
+    background: url(Images/Player/play3.png) no-repeat;
+    padding:24px;
+}
+.player .toggle.play{
+    background: url(Images/Player/pause3.png) no-repeat;
+}
+.player .toggle.play:active{
+    background: url(Images/Player/pause_down3.png) no-repeat;
+}
+
+.player .toggle.pause{
+    background: url(Images/Player/play3.png) no-repeat;
+}
+.player .toggle.pause:active{
+    background: url(Images/Player/play_down3.png) no-repeat;
+}
+
+.player .back{
+    background: url(Images/Player/prev.png) no-repeat;
+}
+.player .back:active{
+    background: url(Images/Player/prev_down.png) no-repeat;
+}
+
+.player .forward{
+    background: url(Images/Player/next.png) no-repeat;
+}
+.player .forward:active{
+    background: url(Images/Player/next_down.png) no-repeat;
+}
+
+.player .pedal {
+    position: absolute;
+    z-index: 100;
+    left: 162px;
+    top: 26px;
+}
+
+.player .pedal .btnPedal {
+    color: #bbb;
+}
+
+.player .pedal .active .btnPedal {
+    color: #7b0;
+}
+
+.player .pedal .active .tm-tooltip {
+    display: none !important;
+}
+
+.player .readout {
+    position: absolute;
+    bottom: 16px;
+    right: 14px;
+    z-index: 4;
+    height: 43px;
+    width: 250px;
+    border-radius: 3px;
+    background: #fff;
+}
+
+.player .counter {
+	margin-top: 5px;
+	font-size: 14pt;
+	text-align: center;
+	color: #737373;
+}
+
+.player .prog-box, .load-bar, .prog-bar {
+	-moz-background-clip:border;
+    -moz-background-inline-policy:continuous;
+    -moz-background-origin:padding;
+
+	height: 7px;
+	position:absolute;
+}
+
+.player .prog-box {
+	background:#a8ac96 url(Images/Player/progressBG.png) repeat-x scroll 0 0;
+	width: 230px;
+	bottom: 5px;
+	left: 10px;
+	z-index: 3;
+}
+
+.player .load-bar 
+{
+    background:#a8ac96 url(Images/Player/loadBG.png) repeat-x scroll 0 0;
+    z-index: 4;
+}
+
+.player .prog-bar {
+    background:#646754 url(Images/Player/progressFG.png) repeat-x scroll 0 0;
+	z-index: 5;
+}
+
+.player .load-display {
+	font-size: 8pt;
+    bottom: 21px;
+    left: 40px;
+    position: absolute;
+}
+
+.player .volume{
+    width:150px;
+    position:relative;
+	top: 23px;
+    left:2px;
+}
+.player .volume .down, .player .volume .up{
+    position:absolute;
+    padding:8px;
+    font-size:0pt;
+    color:transparent;
+}
+.player .volume .up{
+    left:100px;
+	background:url(Images/Player/soundUp.png) no-repeat scroll 0 0;
+}
+.player .volume .down{
+	background:url(Images/Player/soundDown.png) no-repeat scroll 0 0;
+}
+
+.player .vol-box {
+    width:80px;
+
+    background:#727373 url(Images/Player/volBG.png) repeat-x scroll 0 0;
+    height:7px;
+    
+    position:absolute;
+    left:17px;
+    bottom:-11px;
+    z-index:4;
+    border-radius: 1px;
+}
+
+.player .vol-bar {
+    -moz-background-clip:border;
+    -moz-background-inline-policy:continuous;
+    -moz-background-origin:padding;
+    border-radius: 1px;
+    background:#b8b9bb url(Images/Player/volFG.png) repeat-x scroll 0 0;
+
+    height:7px;
+    position:absolute;
+    left:1px;
+    bottom:0;    
+}
+
+#audioWave {
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    margin-top: 15px;
+    border: 1px solid rgba(130,200,0,.3);
+    border-top: 0;
+}
+
+#audioWave.dragging {
+    cursor: -webkit-grabbing;
+    cursor: grabbing;
+}
+
+.wave-drawer {
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.wave-drawer > .wave-drawer-part {
+    position: relative;
+}
+
+.wave-drawer > .wave-drawer-part,
+.wave-drawer > .wave-drawer-part > canvas {
+    display: inline-block;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.wave-drawer > .wave-drawer-part.loading:before,
+.wave-drawer > .wave-drawer-part.loading:after {
+    position: absolute;
+    font-size: 18px;
+    color: #6a0;
+    opacity: .8;
+}
+
+.wave-drawer > .wave-drawer-part.loading:before {
+    font-family: "Elusive-Icons";
+    content: "\f1da";
+    left: 23px;
+    top: 42%;
+    animation: el-spin 2s infinite linear;
+}
+
+.wave-drawer > .wave-drawer-part.loading:after {
+    content: "Loading...";
+    left: 58px;
+    top: 41%;
+}
+
+.wave-ruler {
+    display: block;
+    height: 23px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: rgba(215, 225, 195, .8);
+    color: #888;
+    white-space: nowrap;
+    font: 12px Arial;
+    cursor: pointer;
+}
+
+.wave-ruler li {
+    display: inline-block;
+    padding: 0;
+    width: 28px;
+    margin: 0 -14px;
+    text-align: center;
+    position: relative;
+}
+
+.wave-ruler li:before {
+    content: '';
+    position: absolute;
+    border-left: 1px solid #ccc;
+    height: 10px;
+    top: -11px;
+    right: 1em;
+}
+
+.wave-ruler li.wave-ruler-item-major {
+    top: 6px;
+}
+
+.wave-ruler li.wave-ruler-item-major:before {
+    top: -6px;
+    height: 5px;
+    border-color: #999;
+    box-shadow: 0 0 3px #bbb;
+}
+
+.wave-playerpos {
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    width: 0;
+    background: #7b0;
+    opacity: .3;
+    /*transition: width .1s ease-out 0.05s;*/
+}
+
+.wave-player-cursor {
+    position: absolute;
+    top: 0;
+    left: -10px;
+}
+
+.wave-player-cursor > .nipple {
+    position: relative;
+    background: #7b0;
+    width: 15px;
+    height: 23px;
+    opacity: .95;
+    -webkit-clip-path: polygon(50% 100%, 100% 60%, 100% 0, 0 0, 0 60%);
+    left: calc(-50% + .5px);
+    z-index: 2;
+}
+
+.wave-player-cursor:after {
+    content: "";
+    position: absolute;
+    top: 23px;
+    height: 129px;
+    display: inline-block;
+    width: 1px;
+    background: #7b0;
+}
+
+.wave-timestamp {
+    position: absolute;
+    bottom: 0;
+    display: inline-block;
+    margin-top: 150px;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: -webkit-grab;
+    cursor: grab;
+}
+
+.wave-timestamp:before {
+    content: "";
+    position: absolute;
+    top: -150px;
+    height: 150px;
+    display: inline-block;
+    width: 1px;
+    background-color: #ff6634;
+    /*background-image: linear-gradient(to bottom, #ff6634 73%, transparent 0%);*/
+    background-size: 1px 20px;
+    background-repeat: repeat-y;
+}
+
+.wave-timestamp > .cursor {
+    position: relative;
+    background: #ff6634;
+    color: #fff;
+    padding: 4px 9px;
+    font-size: 16px;
+    opacity: .95;
+    white-space: nowrap;
+}
+
+.wave-timestamp.start > .cursor {
+    padding-right: 14px;
+    border-left: 1px solid #fff;
+    -webkit-clip-path: polygon(0 0, calc(100% - 7px) 0%, 100% 50%, calc(100% - 7px) 100%, 0% 100%);
+    left: calc(-50% + 3px);
+}
+
+.wave-timestamp.end > .cursor {
+    border-right: 1px solid #fff;
+    -webkit-clip-path: polygon(0 50%, 7px 0%, 100% 0%, 100% 100%, 7px 100%);
+    left: calc(-50% - 1px);
+     padding: 0 8px 4px 14px;
+}
+
+.wave-timestamp.end > .cursor > span {
+    font-size: 19px;
+    padding-right: 3px;
+}
+
+.wave-timestamp > .cursor:hover {
+    background: #e52;
+}
+
+.wave-timestamp.dragging,
+.wave-timestamp:hover {
+    z-index: 1;
+}
+
+.wave-timestamp.dragging > .cursor,
+.wave-timestamp.focused > .cursor {
+    background: #7b0;
+}
+
+.wave-timestamp.focused:before {
+    background-color: #7b0;
+}
+
+.wave-timestamp.dragging:before {
+    background-color: transparent;
+    background-image: linear-gradient(to bottom, #7b0 60%, transparent 0%);
+}
+
+.wave-timestamp > .title {
+    position: absolute;
+    top: 3px;
+    color: #fff;
+    background: #7b0;
+    padding: 3px 7px;
+    font-size: 13px;
+    opacity: .9;
+    border-radius: 2px;
+
+    display: none;
+}
+
+.wave-timestamp.start > .title {
+    right: calc(150% - 3px + 3px); /* 3px - tooltip margin */
+}
+
+.wave-timestamp.end > .title {
+    left: calc(50% - 1px + 3px); /* 3px - tooltip margin */
+}
+
+.wave-timestamp.dragging > .cursor + .title,
+.wave-timestamp > .cursor:hover + .title {
+    display: block;
+}
+
+.wave-timestamp-menu {
+    display: none;
+    position: absolute;
+    z-index: 111;
+    background: #fff;
+    box-shadow: 2px 2px 7px #0007;
+    padding: 5px 0;
+    border-radius: 3px;
+    margin-top: 3px;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item {
+    cursor: pointer;
+    padding: 9px 15px;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item i {
+    padding: 0 1px 0 2px;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item[data-action='before'] i {
+    border-right: 2px solid #ff6634;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item[data-action='after'] i {
+    border-left: 2px solid #ff6634;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item[data-action='all'] i {
+    border-left: 2px solid #ff6634;
+    border-right: 2px solid #ff6634;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item-icon {
+    display: inline-block;
+    width: 26px;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item-icon i {
+    font-size: 12px;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-item:hover {
+    background: #e8e8e8;
+}
+
+.wave-timestamp-menu .wave-timestamp-menu-delimiter {
+    border-bottom: 1px solid #ccc;
+    margin: 5px 0;
+}

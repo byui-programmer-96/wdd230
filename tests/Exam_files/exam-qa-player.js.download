@@ -1,0 +1,1949 @@
+function getHotKeyValue(code) {
+    return $('#hotKeys span[data-code="' + code + '"]').text();
+}
+
+
+
+function QaPlayer(sources, parent, text) {
+    try {
+        this.loop = false;
+        this.continuous = false;
+        this.ignoreLoop = false;
+        this.blockStart = 0;
+        this.blockEnd = 0;
+        this.currentBlock;
+        this.savedTime;
+        this.savedBlockStart;
+        this.savedBlockEnd;
+        this.speakerLabelImage = null;
+
+        this.track = new Audio();
+        for (var type in sources) {
+            this.addSource(sources[type], type);
+        }
+
+
+
+        this.track.volume = 0.6;
+        this.track.crossOrigin = "anonymous";
+        
+        this.parent = parent;
+        selfobj = this;
+
+        this.curTime = 0;
+        this.rwTime = 5;
+        this.rwTimeLow = 2;
+        this.timer = setInterval(function() {
+             selfobj.update();
+        }, 500);
+
+        this.lblTime = $('<div class="counter">00:00</div>');
+        this.trackBox = $('<div class="prog-box">');
+        this.trackBar = $('<div class="prog-bar">');
+
+        this.loadBar = $('<div class="load-bar">');
+        this.loadBox = this.trackBox;
+        this.loadDisplay = $('<span class="load-display">0%</span>');
+
+        this.btnForward = $('<a class="ui-additional button forward" href="javascript:void(0);">�</a>');
+        this.btnToggle = $('<a class="button toggle" href="javascript:void(0);">play</a>');
+        this.btnBack = $('<a class="ui-additional button back" href="javascript:void(0);">�</a>');
+
+        this.btnVolUp = $('<a class="up" href="javascript:void(0);">�</a>');
+        this.btnVolDown = $('<a class="down" href="javascript:void(0);">�</a>');
+        this.volumeBox = $('<div class="vol-box">');
+        this.volumeBar = $('<div class="vol-bar">');
+
+        this.speakerpopup = $('<div id="speaker-popup" class="page-popup"></div>');
+        this.speakerNamesPopup = $('<div id="speaker-names-popup" class="page-popup"></div>');
+
+        this.btnPedal = $('<span class="tm-tooltip-parent"><span class="el el-th-list el-rotate-270 btnPedal"></span><span class="tm-tooltip">' + text.pedal + '</span></span>');
+
+        this.pagemask = $('<div id="page-mask"></div>');
+
+        this.initialize();
+
+    } catch (e) {
+        console.error(e);
+        alert("Player can not be initialized [" + e.Description + "]");
+    }
+}
+
+QaPlayer.prototype = {
+    isSimplePauseMode: false,
+    isPlaybackDisabled: false,
+
+    onStateChange: null,
+    onEventFired: null,
+    onPositionChanged: null,
+
+    addSource: function (src, type) {
+        var source = document.createElement('source');
+        source.setAttribute('src', src);
+        if (type != null) {
+            source.setAttribute('type', type);
+        }
+        this.track.appendChild(source);
+    },
+
+
+    initialize: function() {
+        ePlayer = $('<div class="player"></div>');
+
+        eButtons = $('<div class="buttons"></div>');
+        this.btnBack.appendTo(eButtons);
+        this.btnToggle.appendTo(eButtons);
+        this.btnForward.appendTo(eButtons);
+        eButtons.appendTo(ePlayer);
+
+        eReadOut = $('<div class="readout"></div>');
+        this.lblTime.appendTo(eReadOut);
+        this.loadDisplay.appendTo(eReadOut);
+        eProgress = $('<div class="progress"></div>');
+        this.trackBar.appendTo(this.trackBox);
+        this.loadBar.appendTo(this.trackBox);
+        this.trackBox.appendTo(eProgress);
+        eProgress.appendTo(eReadOut);
+        eReadOut.appendTo(ePlayer);
+
+        eVolume = $('<div class="volume"></div>');
+        this.btnVolDown.appendTo(eVolume);
+        this.volumeBar.appendTo(this.volumeBox);
+        this.volumeBox.appendTo(eVolume);
+        this.btnVolUp.appendTo(eVolume);
+        eVolume.appendTo(ePlayer);
+
+        var pedalBtnPanel = $('<div class="pedal"></div>');
+        this.btnPedal.appendTo(pedalBtnPanel);
+        if (isPedalEnabled) {
+            pedalBtnPanel.appendTo(ePlayer);
+        }
+
+
+        ePlayer.appendTo($(this.parent));
+
+        ePlayer.on('click', '.toggle', this.reverseMode);
+        ePlayer.on('click', '.forward', this.forward);
+        ePlayer.on('click', '.back', this.back);
+        ePlayer.on('click', '.up', this.volumeUp);
+        ePlayer.on('click', '.down', this.volumeDown);
+        ePlayer.on('click', '.vol-box', this.grabVolume);
+        ePlayer.on('click', '.prog-box', this.grabTrackBar);
+
+
+        //$(this.track).bind('timeupdate', this.controlTime);
+
+        var audioContext = new AudioContext();
+        
+        //var sourceNode = audioContext.createMediaElementSource(this.track);
+        //sourceNode.connect(audioContext.destination);
+
+        var javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+        javascriptNode.connect(audioContext.destination);
+
+        javascriptNode.onaudioprocess = () => {
+            if (!this.track.paused) {
+                this.controlTime();
+            }
+        }
+
+
+        $(this.track).bind('ended', this.playEnded);
+
+        this.setBar("volume", this.track.volume);
+
+        this.speakerpopup.appendTo('body');
+        this.speakerNamesPopup.appendTo('body');
+        this.initSpeakerNamesPopup();
+        this.pagemask.appendTo('body');
+
+        this.track.load();
+
+
+        // Pedal support
+
+        try {
+            if (typeof chrome !== 'undefined') {
+
+                var jWindow = $(window);
+
+                if (true) {
+                    var port = chrome.runtime.connect('ekchlkccgoacdfccmicachmhgijgdkhi');
+
+                    if (port) {
+                        port.onMessage.addListener(function(event) {
+                            jWindow.trigger(event);
+                        });
+                    }
+                }
+
+                jWindow.off('transcribeme.Connected').on('transcribeme.Connected', function() { selfobj.btnPedal.addClass("active"); });
+                jWindow.off('transcribeme.Disconnected').on('transcribeme.Disconnected', function() { selfobj.btnPedal.removeClass("active") });
+                jWindow.off('transcribeme.play').on('transcribeme.play', this.play_o);
+                jWindow.off('transcribeme.pause').on('transcribeme.pause', this.pause_o);
+                jWindow.off('transcribeme.rewind').on('transcribeme.rewind', this.back);
+                jWindow.off('transcribeme.forward').on('transcribeme.forward', this.forward);
+                jWindow.off('transcribeme.playrewind').on('transcribeme.playrewind', this.back);
+                jWindow.off('transcribeme.playforward').on('transcribeme.playforward', this.forward);
+            }
+        } catch (e) {
+            console.error('Pedal initializing error!');
+        }
+    },
+
+    hideNavigationUI: function() {
+        $('.ui-additional').hide();
+    },
+
+    showNavigationUI: function() {
+        $('.ui-additional').show();
+    },
+
+    setTextBlock: function(textblock) {
+        this.currentBlock = textblock;
+    },
+
+    playRange: function(start, end, nodelay) {
+        if (this.isPlaybackDisabled) {
+            console.log('PlaybackDisabled');
+            return;
+        }
+        this.stop();
+        var delay = start > 0 && !nodelay ? 3 : 0; // if playing next chunk start it from he end of the previous one
+        this.blockStart = start;
+        this.blockEnd = end;
+
+        if (this.track.paused) {
+            this.curTime = start - delay;
+            this.play(true);
+        } else {
+            var instance = this;
+            this.track.currentTime = start;
+
+            if (this.onPositionChanged) {
+                this.isPlaybackDisabled = true;
+                this.pause();
+
+                this.onPositionChanged(this.track.currentTime, function() {
+                    handlePlayRange(instance);
+
+                    instance.isPlaybackDisabled = false;
+                    instance.play();
+                });
+            } else {
+                handlePlayRange(instance);
+            }
+        }
+
+        function handlePlayRange(element) {
+            element.logAction('play-range');
+        }
+
+    },
+
+    setRange: function(start, end) {
+        this.blockStart = start;
+        this.blockEnd = end;
+    },
+
+    removeRange: function() {
+        this.blockStart = 0;
+        this.blockEnd = 0;
+    },
+
+    playEnded: function() {
+        
+    },
+
+    setBlockData: (time) => {
+        $("#editor span.spanblock").each(function() {
+            var start = parseFloat($(this).data('start'));
+            var duration = parseFloat($(this).data('duration'));
+            var end = start + duration;
+            if (time >= start && time <= end) {
+                selfobj.blockStart = start;
+                selfobj.blockEnd = end;
+                return;
+            }
+        });
+        return;
+    },
+
+    controlTime: function () {
+
+        var currentTimeFloat = parseFloat(selfobj.track.currentTime);
+
+        $(selfobj).trigger('setLegalLogHighlight', [currentTimeFloat]);
+        if (selfobj.track.currentTime >= selfobj.blockStart && selfobj.track.currentTime <= selfobj.blockEnd) {
+            $(selfobj).trigger('currentBlockPlaying', [currentTimeFloat]);
+        } else {
+            $(selfobj).trigger('otherBlockPlaying', [currentTimeFloat]);
+        }
+            
+        //if (selfobj.track.currentTime >= selfobj.blockEnd) {
+
+        //    if (selfobj.audioWave && (selfobj.audioWave.playing == selfobj.audioWave.defaults.playing.TS)) {
+        //        selfobj.pause();
+        //        selfobj.curTime = selfobj.blockStart;
+        //        selfobj.track.currentTime = selfobj.blockStart;
+
+        //        if (selfobj.onPositionChanged) {
+        //            selfobj.onPositionChanged(selfobj.track.currentTime);
+        //        }
+
+        //    } else if (!selfobj.loop && !selfobj.ignoreLoop && selfobj.continuous) {
+        //        $(selfobj).trigger('hopToTime', [parseFloat(selfobj.track.currentTime)]);
+
+        //    } else if (selfobj.loop && !selfobj.ignoreLoop) {
+        //        selfobj.pause();
+        //        selfobj.curTime = selfobj.blockStart;
+        //        selfobj.play();
+
+        //        if (selfobj.onPositionChanged) {
+        //            selfobj.isPlaybackDisabled = true;
+        //            selfobj.pause();
+
+        //            selfobj.onPositionChanged(selfobj.track.currentTime, function() {
+        //                selfobj.isPlaybackDisabled = false;
+        //                selfobj.play();
+        //            });
+        //        }
+
+        //    } else if (!selfobj.loop && !selfobj.continuous) {
+        //        selfobj.pause();
+        //        selfobj.curTime = selfobj.blockStart;
+        //        selfobj.track.currentTime = selfobj.blockStart;
+
+        //        if (selfobj.onPositionChanged) {
+        //            selfobj.onPositionChanged(selfobj.track.currentTime);
+        //        }
+
+        //    } else {
+        //        selfobj.stop();
+        //    }
+        //}
+    },
+
+    changeSource: function (src) {
+        var currentTime = this.track.currentTime;
+        var volume = this.track.volume;
+        var inPause = this.track.paused;
+        if (!inPause) {
+            this.pause();
+        }
+        this.track.src = src;
+        this.track.volume = volume;
+        this.track.currentTime = currentTime;
+        this.curTime = currentTime;
+        if (!inPause) {
+            this.play();
+        }
+    },
+
+    setBar: function(name, value) {
+        var bar = $(this[name + "Bar"]);
+        value = Math.round(value * 100);
+        bar.css('width', value.toString() + '%');
+    },
+
+    grabBar: function(name, element) {
+        var xOffset = $(this[name + "Bar"]).position().left;
+        var max = $(this[name + "Box"]).width() - 2 * xOffset;
+        var pos = element.originalEvent.layerX - xOffset;
+        if (pos > max) {
+            pos = max;
+        }
+        if (pos < 0) {
+            pos = 0;
+        }
+        return pos / max;
+    },
+
+    play: function(isRange) {
+        if (this.isPlaybackDisabled) {
+            return;
+        }
+        if (this.onStateChange) {
+            this.onStateChange();
+        }
+
+        if (this.curTime >= 0) {
+            this.track.currentTime = this.curTime;
+        }
+
+        !isRange && selfobj.setBlockData(this.track.currentTime);
+        
+        var instance = this;
+        if (this.onPositionChanged) {
+            this.onPositionChanged(this.track.currentTime, function() {
+                handlePlay(instance);
+            });
+        } else {
+            handlePlay(instance);
+        }
+
+        function handlePlay(element) {
+            element.btnToggle.removeClass("pause");
+            element.btnToggle.addClass("play");
+            $('.speaker-sample-active').attr('src', '../Content/Images/Player/pause_orange.png');
+            element.track.play();
+
+            element.actionCallback('play');
+        }
+
+    },
+    
+    play_o: function(e) {
+        if (selfobj.track.paused) {
+            selfobj.play();
+        }
+
+        e.stopPropagation();
+    },
+
+    pause: function() {
+        $(this).trigger('paused');
+        if (this.onStateChange) {
+            this.onStateChange();
+        }
+
+        this.track.pause();
+        this.curTime = this.track.currentTime;
+        if (this.curTime - 1 > 0 && !this.isSimplePauseMode) {
+            this.curTime -= 1;
+        }
+
+        this.btnToggle.removeClass("play");
+        this.btnToggle.addClass("pause");
+        $('.speaker-sample-active').attr('src', '../Content/Images/Player/play_orange.png');
+
+        this.actionCallback('pause');
+    },
+    pause_o: function(e) {
+        if (!selfobj.track.paused) {
+            selfobj.pause();
+        }
+        e.stopPropagation();
+    },
+
+    stop: function() {
+        $(this).trigger('stoped');
+        this.track.currentTime = 0;
+        this.pause();
+
+        var instance = this;
+        if (this.onPositionChanged) {
+            this.onPositionChanged(this.track.currentTime, function() {
+                handleStop(instance);
+            });
+        } else {
+            handleStop(instance);
+        }
+
+        function handleStop(player) {
+            player.actionCallback('stop');
+        }
+
+    },
+
+    update: function() {
+        if (this.track.buffered.length == 0) {
+            return;
+        }
+        var buffered = this.track.buffered.end(0);
+        var loaded = buffered / this.track.duration;
+        this.setBar("load", loaded);
+        this.loadDisplay.text(Math.floor(loaded * 100) + "%");
+        if (loaded == 1) {
+            this.loadDisplay.hide();
+        }
+
+        if (this.track.ended) {
+            this.pause();
+        }
+        this.showTime();
+        this.showTrackBar();
+    },
+
+    reverseMode: function(e) {
+        if (!selfobj.track.paused) {
+            selfobj.pause();
+        } else {
+            selfobj.play();
+        }
+        $(selfobj).trigger('playerUIUpdated');
+
+        e.stopPropagation();
+    },
+
+    forward: function (e) {
+
+        e.stopPropagation();
+
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime + selfobj.rwTime;
+        if (newTime > selfobj.track.duration) {
+            selfobj.stop();
+        } else {
+            selfobj.curTime = selfobj.track.currentTime = newTime;
+        }
+
+        if (selfobj.onPositionChanged && !selfobj.track.paused) {
+            selfobj.isPlaybackDisabled = true;
+            selfobj.pause();
+            selfobj.onPositionChanged(selfobj.track.currentTime, function() {
+                handleForward(selfobj);
+
+                selfobj.isPlaybackDisabled = false;
+                selfobj.play();
+            });
+        } else {
+            handleForward(selfobj);
+        }
+
+        function handleForward(player) {
+            player.update();
+
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+
+            player.actionCallback('forward');
+        }
+
+    },
+
+    back: function (e) {
+
+        e.stopPropagation();
+
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime - selfobj.rwTime;
+        if (newTime < 0) {
+            newTime = 0;
+        }
+        selfobj.curTime = selfobj.track.currentTime = newTime;
+
+        if (selfobj.onPositionChanged && !selfobj.track.paused) {
+            selfobj.isPlaybackDisabled = true;
+            selfobj.pause();
+            selfobj.onPositionChanged(selfobj.track.currentTime, function() {
+                handleBack(selfobj);
+
+                selfobj.isPlaybackDisabled = false;
+                selfobj.play();
+            });
+        } else {
+            handleBack(selfobj);
+        }
+
+        function handleBack(player) {
+            player.update();
+
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+
+            player.actionCallback('backward');
+        }
+
+    },
+
+    forwardLow: function (e) {
+
+        e.stopPropagation();
+
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime + selfobj.rwTimeLow;
+        if (newTime > selfobj.track.duration) {
+            selfobj.stop();
+        } else {
+            selfobj.curTime = selfobj.track.currentTime = newTime;
+        }
+
+        if (selfobj.onPositionChanged && !selfobj.track.paused) {
+            selfobj.isPlaybackDisabled = true;
+            selfobj.pause();
+            selfobj.onPositionChanged(selfobj.track.currentTime, function() {
+                handleForwardLow(selfobj);
+
+                selfobj.isPlaybackDisabled = false;
+                selfobj.play();
+            });
+        } else {
+            handleForwardLow(selfobj);
+        }
+
+        function handleForwardLow(player) {
+            player.update();
+
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+
+            player.actionCallback('forward-low');
+        }
+
+    },
+
+    backLow: function(e) {
+        if (selfobj.onStateChange) {
+            selfobj.onStateChange();
+        }
+        var newTime = selfobj.track.currentTime - selfobj.rwTimeLow;
+        if (newTime < 0) {
+            newTime = 0;
+        }
+        selfobj.curTime = selfobj.track.currentTime = newTime;
+
+        if (selfobj.onPositionChanged && !selfobj.track.paused) {
+            selfobj.isPlaybackDisabled = true;
+            selfobj.pause();
+            selfobj.onPositionChanged(selfobj.track.currentTime, function() {
+                handleBackLow(selfobj);
+
+                selfobj.isPlaybackDisabled = false;
+                selfobj.play();
+            });
+        } else {
+            handleBackLow(selfobj);
+        }
+
+        e.stopPropagation();
+
+        function handleBackLow(player) {
+            player.update();
+
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+
+            player.actionCallback('backward-low');
+        }
+
+    },
+
+    showTime: function() {
+        var mins = Math.floor(this.track.currentTime / 60).toString();
+        if (mins.length < 2) {
+            mins = "0" + mins;
+        }
+        var secs = Math.floor(this.track.currentTime % 60).toString();
+        if (secs.length < 2) {
+            secs = "0" + secs;
+        }
+        $(this.lblTime).text(mins + ":" + secs);
+    },
+
+    showTrackBar: function() {
+        var pos = 0;
+        if (this.track.duration > 0) {
+            pos = this.track.currentTime / this.track.duration;
+        }
+        this.setBar("track", pos);
+    },
+
+    seek: (value) => {
+        selfobj.curTime = value;
+        selfobj.track.currentTime = value;
+
+        if (selfobj.onPositionChanged && !selfobj.track.paused) {
+            selfobj.pause();
+
+            selfobj.onPositionChanged(selfobj.track.currentTime, function() {
+                handleSeek(selfobj);
+
+                selfobj.play();
+            });
+        } else {
+            handleSeek(selfobj);
+        }
+
+        function handleSeek(player) {
+            player.update();
+            
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+
+            player.actionCallback('seek');
+        }
+    },
+
+    grabTrackBar: function(element) {
+        var value = selfobj.grabBar("track", element) * selfobj.track.duration;
+        selfobj.seek(value);
+    },
+    
+    volumeUp: function (e) {
+        e.stopPropagation();
+        var curVolume = selfobj.track.volume + 0.1;
+        if (curVolume > 1) {
+            curVolume = 1;
+        }
+        selfobj.setVolume(curVolume);
+        $(selfobj).trigger('playerUIUpdated');
+    },
+
+    volumeDown: function (e) {
+        e.stopPropagation();
+        var curVolume = selfobj.track.volume - 0.1;
+        if (curVolume < 0) {
+            curVolume = 0;
+        }
+        selfobj.setVolume(curVolume);
+        $(selfobj).trigger('playerUIUpdated');
+    },
+
+    speedUp: function (e) {
+        e.stopPropagation();
+        if (selfobj.track.playbackRate < 1.0) {
+            selfobj.track.playbackRate = 1.0;
+        }
+        var curSpeed = selfobj.track.playbackRate + 0.1;
+        if (curSpeed > 1.5) {
+            curSpeed = 1.5;
+        }
+        selfobj.track.playbackRate = curSpeed;
+
+        selfobj.actionCallback('speed-up');
+    },
+
+    speedDown: function (e) {
+        e.stopPropagation();
+        var curSpeed = selfobj.track.playbackRate - 0.1;
+        if (curSpeed < 0.5) {
+            curSpeed = 0.5;
+        }
+        selfobj.track.playbackRate = curSpeed;
+
+        selfobj.actionCallback('speed-down');
+    },
+
+
+    zwSp: '&#8203;',
+
+    secToString: function(secs) {
+        var min = Math.floor(secs / 60).toString();
+        if (min.length < 2) {
+            min = "0" + min;
+        }
+        var sec = Math.floor(secs % 60).toString();
+        if (sec.length < 2) {
+            sec = "0" + sec;
+        }
+        var ms = Math.floor(secs * 1000 % 1000);
+        ms = ("00" + ms).substr(-3);
+        
+        return `${min}:${sec}.${ms}`;
+    },
+
+    takeTime: function (num, autoOpen, type) {
+
+        if ($(".no-timestamps").length > 0) {
+            showMaskedErrorMessage("", $(".no-timestamps").data("warning"));
+        }
+
+        if (selfobj.currentBlock != null) {
+            var timeStart = selfobj.track.currentTime;
+            var ss = selfobj.secToString(timeStart); //$("div.counter").text();
+            var range;
+            if (window.getSelection && window.getSelection().getRangeAt) {
+                var sel = window.getSelection();
+                range = sel.getRangeAt(0);
+                //console.log(sel);
+                //console.log(range);
+                // AP : Set whitespace if block is empty and check if spanblock is selected
+                var ws = '';
+                if ($(range.commonAncestorContainer.parentNode).is('[contenteditable]')) {
+                    ws = range.commonAncestorContainer.parentNode.innerHTML.trim() == '' ? '&nbsp;' : '';
+                } else if ($(range.commonAncestorContainer).is('[contenteditable]')) {
+                    ws = range.commonAncestorContainer.innerHTML.trim() == '' ? '&nbsp;' : '';
+                } else {
+                    return false;
+                }
+
+                // AP : Note : Helpfull link regarding range.insertNode http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div
+                range.deleteContents();
+                var canv = document.createElement('canvas');
+                var $canv = $(canv);
+                $canv.attr('unselectable', 'on');
+                $canv.addClass('speakerlabel playerlabel element-clickable');
+                if (type == 'Q')
+                    $canv.addClass('qa-label q-label');
+                if (type == 'A')
+                    $canv.addClass('qa-label a-label');
+                $canv.attr('width', '92');
+                $canv.attr('height', '20');
+                $canv.attr('data-complete', 'no');
+                $canv.attr('data-start', timeStart);
+                $canv.attr('data-timestamp', ss);
+                $canv.attr('data-speaker', num);
+
+                if (isSpeakerNamesEnabled) {
+                    $canv.attr('data-speaker-name', selfobj.getSpeakerName(num));
+                }
+
+                var divWr = document.createElement('div');
+                divWr.innerHTML = canv.outerHTML + ws;
+                
+                var frag = document.createDocumentFragment(), node, lastNode;
+                while ((node = divWr.firstChild)) {
+                    lastNode = frag.appendChild(node);
+                }
+                range.insertNode(frag);
+                
+                if (lastNode) {
+                    range = range.cloneRange();
+                    range.setStartAfter(lastNode);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+            else if (document.selection && document.selection.createRange) {
+                var ch = selfobj.zwSp+ '<canvas contenteditable="true" unselectable="on" class="speakerlabel playerlabel element-clickable" width="92" height="20" data-complete="no" data-start="' +
+                    timeStart + '" data-timestamp="' + ss + '" data-speaker="' + num + '"></canvas>' + selfobj.zwSp;
+                document.selection.createRange().pasteHTML(ch);
+            }
+            var canvas;
+            if (!autoOpen) {
+                canvas = this.getSpeakerLabel(num, selfobj.currentBlock);
+            } else {
+                canvas = this.getSpeakerLabel(num, selfobj.currentBlock);
+            }
+            if (!$canv.hasClass('qa-label')) {
+                canvas.mouseup(function(e) {
+                    e.preventDefault();
+                    selfobj.stop();
+                    selfobj.showSpeakerPopup(this);
+                }).mousedown(function(e) {
+                    e.preventDefault();
+                    selfobj.savedTime = selfobj.track.currentTime;
+                    selfobj.savedBlockStart = selfobj.blockStart;
+                    selfobj.savedBlockEnd = selfobj.blockEnd;
+                });
+            } else {
+
+                var dblclickTimer = null;
+                var clicks = 0;
+                canvas.click(function (e) {
+                    if (clicks > 0) {
+                        return;
+                    }
+                    clicks++;
+                    e.preventDefault();
+                    //console.log('set timer');
+                    dblclickTimer = setTimeout(function () {
+                        console.log('play');
+                        selfobj.stop();
+                        selfobj.curTime = selfobj.track.currentTime = parseFloat(canvas.data('start'));
+                        selfobj.update();
+                        selfobj.play();
+                        clicks = 0;
+                    }, 500);
+                });
+                canvas.dblclick(function (e) {
+                    //console.log('double click');
+                    clearTimeout(dblclickTimer);
+                    e.preventDefault();
+                    clicks = 0;
+
+                    $(this).remove();
+                });
+
+
+            }
+            if (autoOpen) {
+                selfobj.savedTime = selfobj.track.currentTime;
+                selfobj.savedBlockStart = selfobj.blockStart;
+                selfobj.savedBlockEnd = selfobj.blockEnd;
+                selfobj.stop();
+                selfobj.showSpeakerPopup(canvas[0]);
+            }
+        }
+    },
+
+    initHtml: function (container) {
+        selfobj.audioWave && selfobj.audioWave.clearTimestamps();
+
+        var image = new Image();
+        image.height = 20;
+        image.width = 20;
+        image.src = '../Content/Images/Player/speaker_plain.png';
+        image.onload = function () {
+            var blocks = $(container).find('.spanblock');
+            blocks.each(function () {
+                var block = $(this).first();
+                var labels = block.find('.speakerlabel');
+                labels.each(function () {
+                    var label = $(this).first();
+                    var context = label[0].getContext('2d');
+                    
+                    var txt = label.attr('data-speaker');
+                    if (isSpeakerNamesEnabled && label.attr("data-speaker-name")) {
+                        txt = label.attr("data-speaker-name");
+                    }
+
+                    if ($(label).hasClass('q-label'))
+                        txt = "Q";
+                    if ($(label).hasClass('a-label'))
+                        txt = "A";
+
+                    context.font = "12pt Arial";
+                    var sz = context.measureText(txt);
+
+                    var tsPos = 22 + sz.width + 7;
+                    label[0].width = tsPos + 88;
+
+                    if ($(label).hasClass('qa-label'))
+                        label[0].width = sz.width + 68;
+
+
+                    context.drawImage(image, 0, 0);
+                    
+                    context.font = "12pt Arial";
+                    context.strokeText(txt, 22, 16);
+
+                    var time = +$(label).attr("data-start");
+                    var timeStr = selfobj.secToString(time);
+                    $(label).attr("data-timestamp", timeStr);
+
+                    if (!$(label).hasClass('qa-label')) {
+                        context.strokeText('[' + timeStr + ']', tsPos, 16);
+
+                        label.mouseup(function () {
+                            selfobj.stop();
+                            selfobj.showSpeakerPopup(this);
+                        }).mousedown(function () {
+                            selfobj.savedTime = selfobj.track.currentTime;
+                            selfobj.savedBlockStart = selfobj.blockStart;
+                            selfobj.savedBlockEnd = selfobj.blockEnd;
+                        });
+                    } else {
+                        
+                        var dblclickTimer = null;
+                        var clicks = 0;
+                        label.click(function (e) {
+                            if (clicks > 0) {
+                                return;
+                            }
+                            clicks++;
+                            e.preventDefault();
+                            //console.log('set timer');
+                            dblclickTimer = setTimeout(function () {
+                                console.log('play');
+                                selfobj.stop();
+                                selfobj.curTime = selfobj.track.currentTime = parseFloat(label.data('start'));
+                                selfobj.update();
+                                selfobj.play();
+                                clicks = 0;
+                            }, 500);
+                        });
+                        label.dblclick(function (e) {
+                            //console.log('double click');
+                            clearTimeout(dblclickTimer);
+                            e.preventDefault();
+                            clicks = 0;
+
+                            $(this).remove();
+                        });
+                    }
+                    
+                    selfobj.audioWave && selfobj.audioWave.addTimestamp({ name: txt, time: label.attr("data-start"), type: "start" });
+
+                    label.attr('data-complete', 'yes');
+
+                });
+            });
+        };
+
+        var endImage = new Image();
+        endImage.height = 20;
+        endImage.width = 20;
+        endImage.src = '../Content/Images/Player/speaker_end.png';
+        endImage.onload = function () {
+            var blocks = $(container).find('.spanblock');
+            blocks.each(function () {
+                var block = $(this).first();
+                var labels = block.find('.endspeakerlabel');
+                labels.each(function () {
+                    var label = $(this).first();
+                    var context = label[0].getContext('2d');
+                    var tsPos = 26;
+                    label[0].width = tsPos + 87;
+                    context.drawImage(endImage, 3, 0);
+                    
+                    var time = +$(label).attr("data-start");
+                    var timeStr = selfobj.secToString(time);
+                    $(label).attr("data-timestamp", timeStr);
+
+                    context.font = "12pt Arial";
+                    context.strokeText('[' + timeStr + ']', tsPos, 16);
+
+                    if (selfobj.audioWave) {
+                        selfobj.audioWave.timestamps.push({ time, type: "end" });
+                    }
+                });
+            });
+        };
+        
+        var blocks = $(container).find('.spanblock');
+        blocks.each(function () {
+            var block = $(this).first();
+            block.find('.canv-del-endspeakerlabel').remove();
+        });
+
+        if (selfobj.audioWave) {
+            // Observe adding and removing timestamps in editor
+            var mutationHandler = (added, nodes) => {
+                [].slice.call(nodes).forEach((node) => {
+                    if (node.nodeName.toUpperCase() == "CANVAS" && node.classList.contains("playerlabel")) {
+                        var name = node.dataset.speaker;
+                        var time = node.dataset.start;
+                        var type = (node.classList.contains("endspeakerlabel") ? "end" : "start");
+                        selfobj.audioWave[added ? "addTimestamp" : "removeTimestamp"]({ name, time, type });
+                    }
+                });
+            };
+            var mutationObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.length > 0 && mutationHandler(true, mutation.addedNodes);
+                    mutation.removedNodes.length > 0 && mutationHandler(false, mutation.removedNodes);
+                });
+            });
+            mutationObserver.observe(container[0], { childList: true, subtree: true });
+        }
+    },
+    
+    getSpeakerLabel: function (num, element) {
+        var canvas = $(element).find('.speakerlabel[data-complete="no"]')[0];
+        context = canvas.getContext('2d');
+        var image = new Image();
+        image.height = 20;
+        image.width = 20;
+        image.onload = function () {
+            context.drawImage(image, 0, 0);
+        };
+        image.src = '../Content/Images/Player/speaker_plain.png';
+
+        var txt = num;
+        if (isSpeakerNamesEnabled) {
+            txt = selfobj.getSpeakerName(num);
+        }
+        if ($(canvas).hasClass('a-label'))
+            txt = "A";
+        if ($(canvas).hasClass('q-label'))
+            txt = "Q";
+
+        context.font = "12pt Arial";
+        var sz = context.measureText(txt);
+
+        var tsPos = 22 + sz.width + 7;
+
+        canvas.width = tsPos + 88;
+
+        if ($(canvas).hasClass('qa-label'))
+            canvas.width = sz.width + 68;
+
+        context.drawImage(image, 0, 0);
+        context.font = "12pt Arial";
+
+
+        context.strokeText(txt, 22, 16);
+        if (!$(canvas).hasClass('qa-label')) {
+            var time = $(canvas).attr("data-timestamp");
+            context.strokeText('[' + time + ']', tsPos, 16);
+        }
+        $(canvas).attr('data-complete', 'yes');
+        return $(canvas);
+    },
+
+    getEndSpeakerLabel: function (element) {
+        var canvas = $(element).find('.endspeakerlabel[data-complete="no"]')[0];
+        context = canvas.getContext('2d');
+        var image = new Image();
+        image.src = '../Content/Images/Player/speaker_end.png';
+        image.height = 20;
+        image.width = 20;
+        image.onload = function() {
+            var tsPos = 26;
+            canvas.width = tsPos + 87;
+            context.drawImage(image, 3, 0);
+                    
+            var time = +$(canvas).attr("data-start");
+            var timeStr = selfobj.secToString(time);
+            $(canvas).attr("data-timestamp", timeStr);
+
+            context.font = "12pt Arial";
+            context.strokeText('[' + timeStr + ']', tsPos, 16);
+        };
+        $(canvas).attr('data-complete', 'yes');
+    },
+
+    updateSpeakerTime: function(speaker, newTime) {
+        var elem;
+        var startType = (speaker.type === "start");
+
+        if (startType) {
+            elem = $(`#editor canvas.speakerlabel[data-speaker="${speaker.name}"][data-start="${speaker.time}"]`);
+        } else {
+            elem = $(`#editor canvas.endspeakerlabel[data-start="${speaker.time}"]`);
+        }
+
+        if (elem) {
+            elem.attr("data-start", newTime);
+            elem.attr("data-timestamp", selfobj.secToString(newTime));
+            
+            elem.attr("data-complete", "no");
+            
+            if (startType) {
+                selfobj.getSpeakerLabel(speaker.name, elem.parent()[0]);
+            } else {
+                selfobj.getEndSpeakerLabel(elem.parent()[0]);
+            }
+        }
+    },
+    
+    setVolume: function (value) {
+        this.track.volume = value;
+        this.setBar("volume", this.track.volume);
+    },
+
+    grabVolume: function (element) {
+        var value = selfobj.grabBar("volume", element);
+        selfobj.setVolume(value);
+        $(selfobj).trigger('playerUIUpdated');
+    },
+
+    setTime: function () {
+        var textField = $('#Text');
+
+        var txt = textField.val();
+        var el = textField.get(0);
+        var pos = 0;
+        if ('selectionStart' in el) {
+            pos = el.selectionStart;
+        }
+        else if ('selection' in document) {
+            el.focus();
+            var Sel = document.selection.createRange();
+            var SelLength = document.selection.createRange().value.length;
+            Sel.moveStart('character', -el.value.length);
+            pos = Sel.value.length - SelLength;
+        }
+
+        var str = txt.substring(pos - 5, pos + 5);
+        var sstr = new String(str);
+        var ppos = sstr.indexOf(":");
+        var sminutes = sstr.substring(ppos - 3, ppos);
+        var sseconds = sstr.substring(ppos + 1, ppos + 3);
+        var mins = parseInt(sminutes, 10);
+        var secs = parseInt(sseconds, 10);
+
+        var time = mins * 60 + secs;
+        if (time < selfobj.track.duration) {
+            if ((time - 1) > 0) time = time - 1;
+            selfobj.curTime = selfobj.track.currentTime = time;
+            selfobj.update();
+            selfobj.play();
+            $('#testmark').text("(" + mins + ":" + secs + ")");
+        }
+        else {
+            $('#testmark').text("(>)");
+        }
+    },
+
+    takeEndTime: function () {
+        if (selfobj.currentBlock != null) {
+            var timeStart = selfobj.track.currentTime;
+            var ss = selfobj.secToString(timeStart);
+            var ch = '<canvas unselectable="on" class="endspeakerlabel playerlabel" width="20" height="20" data-complete="no" data-start="' +
+                timeStart + '" data-timestamp="' + ss + '">';
+            var range, node;
+            if (window.getSelection && window.getSelection().getRangeAt) {
+                var sel = window.getSelection();
+                range = sel.getRangeAt(0);
+                node = range.createContextualFragment(ch);
+                var canvas = node.firstChild;
+                range.insertNode(node);
+
+                var zwSp = $('<textarea />').html(selfobj.zwSp).text();
+
+
+                if (canvas) {
+                    range = range.cloneRange();
+                    range.setStartAfter(canvas);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+
+
+
+            } else if (document.selection && document.selection.createRange) {
+                document.selection.createRange().pasteHTML(ch);
+            }
+            this.getEndSpeakerLabel(selfobj.currentBlock);
+        }
+    },
+
+    // Speaker popup
+    isSpeakerNameItemExists: function(speaker) {
+        for (var idx in selfobj.speakersNameList) {
+            var spItem = selfobj.speakersNameList[idx];
+            if (spItem.SpeakerIdx == speaker)
+                return true;
+        }
+
+        return false;
+
+    },
+
+    
+
+    initSpeakerNamesPopup: function (sender) {
+
+        var popup = $(selfobj.speakerNamesPopup);
+        popup.html('');
+        var rowcont = $('<div class="div-speakerpopup-rowcontainer"></div>');
+        $(popup).append(rowcont);
+
+
+        selfobj.speakersNameList = selfobj.speakersNameList ? selfobj.speakersNameList : [];
+        $('canvas.speakerlabel').each(function () {
+            var sIdx = $(this).attr('data-speaker');
+            if (!selfobj.isSpeakerNameItemExists(sIdx) && !$(this).hasClass('qa-label')) {
+
+                var sName = $(this).data('speaker-name') ? $(this).data('speaker-name') : sIdx;
+               selfobj.speakersNameList.push({ SpeakerIdx: sIdx,  SpeakerName: sName });
+            }
+        });
+
+
+        selfobj.speakersNameList.sort(function (a, b) {
+            var sortStatus = 0;
+
+            if (parseInt(a.SpeakerIdx) < parseInt(b.SpeakerIdx)) {
+                sortStatus = -1;
+            } else if (parseInt(a.SpeakerIdx) > parseInt(b.SpeakerIdx)) {
+                sortStatus = 1;
+            }
+
+            return sortStatus;
+        });
+
+        for (var idx in selfobj.speakersNameList) {
+            var speaker = selfobj.speakersNameList[idx];
+            var row = $('<div class="popup-row popup-row-header" data-speaker="' + speaker.SpeakerIdx + '"></div>');
+            var label = $('<div class="header-speaker-label"></div>');
+            var labelimage = $('<img src="../Content/Images/Player/speaker_orange.png" class="speaker-selector-img"/>');
+            var labelspan = $('<span>' + speaker.SpeakerIdx + ' </span>');
+            var nameInput = $('<input type="text" class="txt-speaker-name" data-speaker="' + speaker.SpeakerIdx + '" value="' + speaker.SpeakerName + '" onkeypress="validateNameInput(event)" maxlength="30" />');
+            var delBtn = $('<a class="del" data-speaker="' + speaker.SpeakerIdx + '" href="javascript:void(0)">X</a>');
+            $(label).append($(labelimage));
+            $(label).append($(labelspan));
+            $(label).append(nameInput);
+
+            if ($('#editor canvas[data-speaker="' + speaker.SpeakerIdx + '"]').length == 0) {
+                $(label).append(delBtn);
+            }
+
+            $(row).append($(label));
+            
+            $(rowcont).append($(row));
+
+            $(delBtn).click(function() {
+                var spId = $(this).data('speaker');
+                selfobj.deleteSpeakerName(spId);
+            });
+        }
+
+
+        var editrow = $('<div class="popup-row popup-row-footer" ></div>');
+        var submitspeaker = $('<span class="submit-speaker-span">Save</span>');
+        var addSpeaker = $('<span class="add-speaker-span">Add Speaker</span>');
+        var editSpeakers = $('<span class="edit-speakers-span">Edit Speakers</span>');
+        
+        var cnt = selfobj.speakersNameList.length;
+        var newSpeakerIdx = cnt > 0 ? parseInt(selfobj.speakersNameList[cnt - 1].SpeakerIdx) + 1 : 1;
+        if (isNaN(newSpeakerIdx) && cnt > 2) {
+            newSpeakerIdx = parseInt(selfobj.speakersNameList[cnt - 2].SpeakerIdx) + 1;
+        } else {
+            newSpeakerIdx = 1;
+        }
+
+        var newIdInput = $('<input type="text" id="newSpeakerNameId" onkeypress="validateNumInput(event)" />');
+        newIdInput.val(newSpeakerIdx);
+        newIdInput.width(40);
+        var newIdInputLabel = $('<span >New Id:</span>');
+
+
+        $(submitspeaker).click(function () {
+            selfobj.updateSpeakerNames();
+            selfobj.hideSpeakerNamesPopup();
+        });
+
+        $(addSpeaker).click(function () {
+            selfobj.addSpeakerNameItem();
+        });
+
+        $(delBtn).click(function () {
+            var spId = $(this).data('speaker');
+            selfobj.deleteSpeakerName(spId);
+
+        });
+
+
+        $(editSpeakers).click(function () {
+            selfobj.showSpeakerPopup();
+        });
+
+
+        $(editrow).append($(newIdInputLabel));
+        $(editrow).append($(newIdInput));
+        $(editrow).append($(addSpeaker));
+        $(editrow).append($(submitspeaker));
+        $(editrow).append($(editSpeakers));
+        
+        $(popup).append($(editrow));
+
+    },
+
+    addSpeakerNameItem: function() {
+
+        var cnt = selfobj.speakersNameList.length;
+        var newSpeakerIdx = parseInt($('#newSpeakerNameId').val() != '' ? $('#newSpeakerNameId').val() : (cnt > 0 ? selfobj.speakersNameList[cnt - 1].SpeakerIdx + 1 : 1));
+        if (newSpeakerIdx == NaN) {
+            newSpeakerIdx = parseInt($('#newSpeakerNameId').val() != '' ? $('#newSpeakerNameId').val() : (cnt > 1 ? selfobj.speakersNameList[cnt - 2].SpeakerIdx + 1 : 1));
+        }
+        if (!selfobj.isSpeakerNameItemExists(newSpeakerIdx) && newSpeakerIdx>0) {
+            var speaker = { SpeakerIdx: newSpeakerIdx, SpeakerName: newSpeakerIdx };
+            selfobj.speakersNameList.push(speaker);
+            var row = $('<div class="popup-row popup-row-header" data-speaker="' + speaker.SpeakerIdx + '"></div>');
+            var label = $('<div class="header-speaker-label"></div>');
+            var labelimage = $('<img src="../Content/Images/Player/speaker_orange.png" class="speaker-selector-img"/>');
+            var labelspan = $('<span>' + speaker.SpeakerIdx + ' </span>');
+            var nameInput = $('<input type="text" class="txt-speaker-name" data-speaker="' + speaker.SpeakerIdx + '" value="' + speaker.SpeakerName + '" onkeypress="validateNameInput(event)" maxlength="30" />');
+            var delBtn = $('<a class="del" data-speaker="' + speaker.SpeakerIdx + '" href="javascript:void(0)">X</a>');
+            $(label).append($(labelimage));
+            $(label).append($(labelspan));
+            $(label).append(nameInput);
+            $(label).append(delBtn);
+            $(row).append($(label));
+
+            $(delBtn).click(function () {
+                var spId = $(this).data('speaker');
+                selfobj.deleteSpeakerName(spId);
+            });
+
+
+            $(row).appendTo($('#speaker-names-popup .div-speakerpopup-rowcontainer'));
+
+            $('#newSpeakerNameId').val(parseInt(newSpeakerIdx) + 1);
+
+            var cont = $('#speaker-names-popup .div-speakerpopup-rowcontainer');
+            cont.scrollTop(cont[0].scrollHeight);
+        }
+    },
+
+    updateSpeakerNames: function () {
+        selfobj.speakersNameList = [];
+        $('.txt-speaker-name').each(function() {
+            var sIdx = $(this).attr('data-speaker');
+            selfobj.speakersNameList.push({ SpeakerIdx: sIdx, SpeakerName: $.trim($(this).val()) });
+            $('canvas.speakerlabel[data-speaker="' + sIdx + '"]').attr('data-speaker-name', $.trim($(this).val()));
+
+        });
+        $('canvas.speakerlabel').each(function () {
+            $(this).attr('data-complete', 'no');
+            selfobj.getSpeakerLabel($(this).attr('data-speaker'), $(this).parent()[0]);
+            var block = $(this).parents('span.spanblock').first();
+            block.data('isDirty', true);
+        });
+
+        var saveData = { id: sessionId };
+        for (var idx in selfobj.speakersNameList) {
+            var sp = selfobj.speakersNameList[idx];
+            saveData['speakerNameList[' + idx + '].SpeakerIdx'] = sp.SpeakerIdx;
+            saveData['speakerNameList[' + idx + '].SpeakerName'] = sp.SpeakerName;
+        }
+        $.post(saveSpeakerNameListUrl, saveData);
+    },
+
+    showSpeakerNamesPopup: function (sender) {
+
+        selfobj.initSpeakerNamesPopup();
+
+        var popup = $(selfobj.speakerNamesPopup);
+
+        selfobj.pagemask.css('height', $(document).height() + 'px');
+        selfobj.pagemask.show();
+        popup.show();
+
+    },
+
+    hideSpeakerNamesPopup: function (sender) {
+
+        var popup = $(selfobj.speakerNamesPopup);
+        popup.hide();
+
+        var spPopup = $(selfobj.speakerpopup);
+        if (spPopup.filter(':visible').length == 0) {
+            selfobj.pagemask.hide();
+        }
+    },
+
+    getSpeakerName: function(speaker) {
+        for (var idx in selfobj.speakersNameList) {
+            var spItem = selfobj.speakersNameList[idx];
+            if (spItem.SpeakerIdx == speaker)
+                return spItem.SpeakerName;
+        }
+
+        return speaker;
+    },
+    deleteSpeakerName: function (speaker) {
+        for (var idx in selfobj.speakersNameList) {
+            var spItem = selfobj.speakersNameList[idx];
+            if (spItem.SpeakerIdx == speaker) {
+                
+                selfobj.speakersNameList.splice(idx, 1);
+
+            }
+        }
+        for (idx in initSpeakerNameList) {
+            spItem = initSpeakerNameList[idx];
+            if (spItem.SpeakerIdx == speaker) {
+
+                initSpeakerNameList.splice(idx, 1);
+
+            }
+        }
+        
+        $('#speaker-names-popup .popup-row[data-speaker="' + speaker + '"]').remove();
+
+
+    },
+
+
+    showSpeakerPopup: function (sender) {
+
+        if (typeof (sender) == 'undefined') {
+            sender = $('#editor canvas');
+            if (sender.length == 0) {
+                alert('There is no speakers added to the text yet');
+                return;
+            }
+            sender = sender[0];
+        }
+
+        selfobj.ignoreLoop = true;
+        var popup = $(selfobj.speakerpopup);
+        popup.html('');
+        var rowcont = $('<div class="div-speakerpopup-rowcontainer"></div>');
+        $(popup).append(rowcont);
+        var num = $(sender).attr('data-speaker');
+        var speakersList = {};
+        $('canvas.speakerlabel').each(function () {
+            var key = $(this).attr('data-speaker');
+            if (Object.keys(speakersList).indexOf($(this).attr('data-speaker')) == -1 && !$(this).hasClass('qa-label')) {
+                speakersList[key] = { ind: $(this).attr('data-speaker'), isModerator: ($(this).attr('data-is-moderator')=="true" || false) };
+                //speakersList.push();
+            }
+        });
+        for (var idx in speakersList) {
+            var speaker = speakersList[idx];
+            var occurancenumber = $('canvas.speakerlabel[data-speaker="' + speaker.ind + '"]:not(.qa-label)').length;
+            var row = $('<div class="popup-row popup-row-header" data-speaker="' + speaker.ind + '"></div>');
+            var label = $('<div class="header-speaker-label"></div>');
+            var labelimage = $('<img src="../Content/Images/Player/speaker_orange.png" class="speaker-selector-img element-clickable" data-speaker="' + speaker.ind + '"/>');
+            var currentSpeakerTime = speaker.ind == $(sender).attr('data-speaker') ? '</span><span class="span-current-time"> current: ' + $(sender).attr('data-timestamp') + '</span>' : '';
+            var labelspan = $('<span>' + speaker.ind + ' <span class="span-selected-time" data-speaker="' + speaker.ind + '" >' + currentSpeakerTime + '</span>');
+            var samples = $('<div class="expand-samples"></div>');
+            var samplepause = $('<img src="../Content/Images/Player/play_orange.png" class="speaker-sample-pause element-clickable" data-speaker="' + speaker.ind + '"/>');
+            var sampleprev = $('<img src="../Content/Images/Player/back_grey.png"  class="speaker-sample-prev element-clickable" data-speaker="' + speaker.ind + '" data-start="0"/>');
+            var samplenext = $('<img src="../Content/Images/Player/forward_orange.png"  class="speaker-sample-next element-clickable" data-speaker="' + speaker.ind + '" data-start="0"/>');
+            
+            $(label).append($(labelimage));
+            $(label).append($(labelspan));
+
+
+
+            if (occurancenumber > 1) {
+                $(samples).append($(sampleprev));
+                $(samples).append($(samplenext));
+                sampleprev.click(function() {
+                    selfobj.fetchPrevSpeakerSample(this);
+                });
+                samplenext.click(function() {
+                    selfobj.fetchNextSpeakerSample(this);
+                });
+            }
+            if (occurancenumber == 1) {
+                $(samplepause).addClass('speaker-sample-single');
+            }
+            $(samples).append($(samplepause));
+            $(row).append($(samples));
+            $(row).append($(label));
+            $(rowcont).append($(row));
+
+            
+
+            labelimage.click(function() {
+                selfobj.updateSpeakerLabel(sender, $(this).attr('data-speaker'));
+            });
+            samplepause.click(function () {
+                selfobj.speakerSampleToggle(this);
+            });
+
+
+        }
+        $('span.span-selected-time').click(function () {
+            var selt = $(this).data('start');
+            var sels = $(this).attr('data-speaker');
+            var newLabel = $('canvas.speakerlabel[data-start="' + selt + '"][data-speaker="' + sels + '"]');
+            if (newLabel.length > 0) {
+                selfobj.reopenSpeakerPopup(newLabel[0]);
+            }
+        });
+        // apushkin note - move this block to the init function
+        var editrow = $('<div class="popup-row popup-row-footer" data-speaker="' + speaker.ind + '"></div>');
+        var labelspan = $('<span>#</span>');
+        var input = $('<input class="tb-new-speaker" onkeypress="validateNumInput(event)" value="' + num + '"/>');
+        var submitspeaker = $('<span class="submit-speaker-span">rename</span>');
+        var renameall = $('<span class="submit-speaker-span">rename all</span>');
+        var deletespeaker = $('<span class="submit-speaker-span">delete</span>');
+        var editNames = $('<span class="edit-speaker-names-span">edit names</span>');
+
+        $(editNames).click(function() {
+            selfobj.showSpeakerNamesPopup();
+        });
+
+        $(submitspeaker).click(function() {
+            selfobj.updateSpeakerLabel(sender, $('.tb-new-speaker').first().val());
+        });
+        $(renameall).click(function() {
+            selfobj.updateAllSpeakers($(sender).attr('data-speaker'), $('.tb-new-speaker').first().val());
+        });
+        $(deletespeaker).click(function () {
+            $(sender).prev('br').remove();
+
+            var zwSp = $('<textarea />').html(selfobj.zwSp).text();
+            var str = sender.nextSibling && sender.nextSibling.nodeValue ? sender.nextSibling.nodeValue : '';
+            if (str && zwSp[0] == str[0]) {
+                str = str.slice(1);
+                sender.nextSibling.nodeValue = str;
+            }
+            str = sender.previousSibling && sender.previousSibling.nodeValue ? sender.previousSibling.nodeValue : '';
+            if (str && zwSp[0] == str.slice(-1)[0]) {
+                str = str.slice(0,-1);
+                sender.previousSibling.nodeValue = str;
+            }
+
+            $(sender).remove();
+
+
+            selfobj.hideSpeakerPopup();
+        });
+        input.keypress(function (e) {
+            if (e.which == 13) {
+                selfobj.updateSpeakerLabel(sender, $('.tb-new-speaker').first().val());
+            }
+        });
+        input.bind('paste', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        $(editrow).append($(labelspan));
+        $(editrow).append($(input));
+        $(editrow).append($(submitspeaker));
+        $(editrow).append($(renameall));
+        $(editrow).append($(deletespeaker));
+        if (isSpeakerNamesEnabled) {
+
+            $(editrow).append($(editNames));
+        }
+        $(popup).append($(editrow));
+        selfobj.pagemask.css('height', $(document).height() + 'px');
+        selfobj.pagemask.show();
+        popup.show();
+        input.focus();
+    },
+
+    updateSpeakerLabel: function (label, num) {
+        selfobj.ignoreLoop = false;
+        selfobj.stop();
+        selfobj.frozen = false;
+        $(selfobj.speakerpopup).hide();
+        $(selfobj.pagemask).hide();
+
+        var curId = $(label).attr('data-speaker');
+        var curStart = $(label).attr('data-start');
+        
+        label.width = label.width;
+        $(label).attr('data-complete', 'no');
+        $(label).attr('data-speaker', num);
+        if (isSpeakerNamesEnabled) {
+            $(label).attr('data-speaker-name', selfobj.getSpeakerName(num));
+        }
+        
+        var parent = $(label).parents('span').first();
+        selfobj.getSpeakerLabel(num, parent);
+        selfobj.playRange(selfobj.savedBlockStart, selfobj.savedBlockEnd);
+
+
+        var block = $(label).parents('span.spanblock').first();
+        block.data('isDirty', true);
+
+        selfobj.track.currentTime = selfobj.savedTime;
+
+        if (selfobj.onPositionChanged) {
+            selfobj.pause();
+
+            selfobj.onPositionChanged(selfobj.track.currentTime, function () {
+                handleUpdateSpeakerLabel(selfobj);
+
+                selfobj.play();
+            });
+        } else {
+            handleUpdateSpeakerLabel(selfobj);
+        }
+
+        if (selfobj.audioWave) {
+            selfobj.audioWave.updateTimestamp({ name: curId, time: curStart }, { name: num });
+        }
+
+        function handleUpdateSpeakerLabel(player) {
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+        }
+    },
+
+    updateAllSpeakers: function (oldNum, num) {
+        selfobj.ignoreLoop = false;
+        selfobj.stop();
+        selfobj.frozen = false;
+        $(selfobj.speakerpopup).hide();
+        $(selfobj.pagemask).hide();
+        var label = $('canvas.speakerlabel[data-speaker="' + oldNum + '"]');
+        label.each(function () {
+            var curStart = $(this).attr('data-start');
+
+            this.width = this.width;
+            $(this).attr('data-complete', 'no');
+            $(this).attr('data-speaker', num);
+            var parent = $(this).parents('span').first();
+            selfobj.getSpeakerLabel(num, parent);
+            selfobj.playRange(selfobj.savedBlockStart, selfobj.savedBlockEnd);
+
+            var block = $(this).parents('span.spanblock').first();
+            block.data('isDirty', true);
+
+            selfobj.track.currentTime = selfobj.savedTime;
+
+            if (selfobj.onPositionChanged) {
+                selfobj.pause();
+
+                selfobj.onPositionChanged(selfobj.track.currentTime, function () {
+                    handleUpdateSpeaker(selfobj);
+
+                    selfobj.play();
+                });
+            } else {
+                handleUpdateSpeaker(selfobj);
+            }
+
+            if (selfobj.audioWave) {
+                selfobj.audioWave.updateTimestamp({ name: oldNum, time: curStart }, { name: num });
+            }
+
+            function handleUpdateSpeaker(player) {
+                $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+            }
+        });
+    },
+
+    fetchNextSpeakerSample: function (sender) {
+        var start = $(sender).attr('data-start');
+        var speaker = $(sender).attr('data-speaker');
+        var others = $('.playerlabel').filter(function() {
+            return $(this).attr('data-speaker') != speaker;
+        });
+        var same = $('.speakerlabel:not(.qa-label)').filter(function() {
+             return ($(this).attr('data-speaker') == speaker && $(this).attr('data-start') > parseFloat(start));
+        });
+        var samestampslist = [];
+        $(same).each(function() {
+            samestampslist.push(parseFloat($(this).attr('data-start')));
+        });
+        samestampslist.sort(function (a, b) { return a - b; });
+        start = samestampslist[0];
+        if (samestampslist.length < $('.speakerlabel[data-speaker="' + speaker + '"]').length) {
+            $('.speaker-sample-prev[data-speaker="' + speaker + '"]').attr('src', '../Content/Images/Player/back_orange.png');
+        }
+        if (!start) {
+            $(sender).attr('src', '../Content/Images/Player/forward_grey.png');
+            return;
+        }
+        $('.speaker-sample-prev[data-speaker="' + speaker + '"]').attr('data-start', start);
+        $(sender).attr('data-start', start);
+        var stampslist = [];
+        $(others).each(function() {
+            stampslist.push(parseFloat($(this).attr('data-start')));
+        });
+        stampslist.sort(function (a, b) { return a - b; });
+        var end = $(stampslist).filter(function() {
+            return this > parseFloat(start);
+        }).first();
+        if (!end || samestampslist.indexOf(start) == samestampslist.length - 1) {
+            $(sender).attr('src', '../Content/Images/Player/forward_grey.png');
+        }
+
+        $('.speaker-sample-active').attr('src', '../Content/Images/Player/play_orange.png');
+        $('.speaker-sample-active').removeClass('speaker-sample-active');
+        $('.speaker-sample-pause[data-speaker="' + speaker + '"]').addClass('speaker-sample-active');
+
+        selfobj.updateSampleLabel(sender, start);
+
+        selfobj.playRange(start, end[0], true);
+    },
+
+    fetchPrevSpeakerSample: function (sender) {
+        var start = $(sender).attr('data-start');
+        var speaker = $(sender).attr('data-speaker');
+        var others = $('.playerlabel').filter(function() {
+            return $(this).attr('data-speaker') != speaker;
+        });
+        var same = $('.speakerlabel:not(.qa-label)').filter(function() {
+            return ($(this).attr('data-speaker') == speaker && $(this).attr('data-start') < parseFloat(start));
+        });
+        var samestampslist = [];
+        $(same).each(function() {
+            samestampslist.push(parseFloat($(this).attr('data-start')));
+        });
+        samestampslist.sort(function (a, b) { return a - b; });
+        samestampslist.reverse();
+        start = samestampslist[0] ? samestampslist[0] : '0';
+        if (start == 0) {
+            $(sender).attr('src', '../Content/Images/Player/back_grey.png');
+            return;
+        }
+        else {
+            $('.speaker-sample-next[data-speaker="' + speaker + '"]').attr('src', '../Content/Images/Player/forward_orange.png');
+            if (samestampslist.length == 1) {
+                $(sender).attr('src', '../Content/Images/Player/back_grey.png');
+            }
+
+            $('.speaker-sample-next[data-speaker="' + speaker + '"]').attr('data-start', start);
+            $(sender).attr('data-start', start);
+            var stampslist = [];
+            $(others).each(function() {
+                stampslist.push(parseFloat($(this).attr('data-start')));
+            });
+            stampslist.sort(function(a, b) {
+                return a - b;
+            });
+            var end = $(stampslist).filter(function() {
+                return this > parseFloat(start);
+            }).first();
+
+            $('.speaker-sample-active').attr('src', '../Content/Images/Player/play_orange.png');
+            $('.speaker-sample-active').removeClass('speaker-sample-active');
+            $('.speaker-sample-pause[data-speaker="' + speaker + '"]').addClass('speaker-sample-active');
+
+            selfobj.updateSampleLabel(sender, start);
+
+            selfobj.playRange(start, end[0], true);
+        }
+    },
+
+    speakerSampleToggle: function (sender) {
+        var speaker = $(sender).attr('data-speaker');
+        var start;
+        if (!$(sender).hasClass('speaker-sample-single')) {
+            if (!$(sender).hasClass('speaker-sample-active')) {
+                $('.speaker-sample-next[data-speaker="' + speaker + '"]').trigger('click');
+            } else {
+                if (selfobj.track.paused || !$(sender).hasClass('speaker-sample-active')) {
+                    start = $(sender).parents('div.popup-row').find('.span-selected-time').data('start');
+                    var curIdx = $('.speakerlabel').index($('.speakerlabel[data-start="' + start + '"]'));
+                    end = $('.speakerlabel:eq(' + (curIdx + 1) + ')').data('start');
+
+                    if (selfobj.track.currentTime < start || selfobj.track.currentTime > end) {
+                        selfobj.playRange(start, end, true);
+                        selfobj.updateSampleLabel(sender, start);
+                    } else {
+                        selfobj.reverseMode();
+                    }
+                } else {
+                    selfobj.reverseMode();
+                }
+            }
+        } else {
+            if (selfobj.track.paused || !$(sender).hasClass('speaker-sample-active')) {
+                $('.speaker-sample-active').attr('src', '../Content/Images/Player/play_orange.png');
+                $('.speaker-sample-active').removeClass('speaker-sample-active');
+                $(sender).addClass('speaker-sample-active');
+                var others = $('.playerlabel').filter(function() {
+                    return $(this).attr('data-speaker') != speaker;
+                });
+                start = $('.speakerlabel[data-speaker="' + speaker + '"]').first().attr('data-start');
+                var stampslist = [];
+                $(others).each(function() {
+                    stampslist.push(parseFloat($(this).attr('data-start')));
+                });
+                stampslist.sort(function(a, b) { return a - b; });
+                var end = $(stampslist).filter(function() {
+                    return this > parseFloat(start);
+                }).first();
+
+                selfobj.playRange(start, end[0], true);
+
+                selfobj.updateSampleLabel(sender, start);
+            } else {
+                selfobj.reverseMode();
+            }
+        }
+    },
+
+    reopenSpeakerPopup: function (sender) {
+        selfobj.hideSpeakerPopup();
+        selfobj.showSpeakerPopup(sender);
+    },
+
+    updateSampleLabel: function (sender, time) {
+        $('.span-selected-time').html('');
+        var speaker = $(sender).attr('data-speaker');
+        var label = $('canvas.speakerlabel[data-start="' + time + '"][data-speaker="' + speaker +'"]');
+        var timestamp = label && label.length > 0 && label.attr('data-timestamp')
+                            ? label.attr('data-timestamp')
+                            : doubleSecondsToTimeSpan(time);
+        $(sender).parents('div.popup-row').find('.span-selected-time').html('[' + timestamp + ']');
+        $(sender).parents('div.popup-row').find('.span-selected-time').data('start', time);
+    },
+
+    hideSpeakerPopup: function () {
+        selfobj.ignoreLoop = false;
+        $(selfobj.speakerpopup).hide();
+
+        if ($(selfobj.speakerNamesPopup).filter(':visible').length == 0) {
+            $(selfobj.pagemask).hide();
+        }
+        selfobj.playRange(selfobj.savedBlockStart, selfobj.savedBlockEnd);
+
+
+        if (selfobj.savedTime)
+            selfobj.track.currentTime = selfobj.savedTime;
+
+        if (selfobj.onPositionChanged) {
+            selfobj.pause();
+
+            selfobj.onPositionChanged(selfobj.track.currentTime, function () {
+                handleSpekerPopupHide(selfobj);
+
+                selfobj.play();
+            });
+        } else {
+            handleSpekerPopupHide(selfobj);
+        }
+
+        function handleSpekerPopupHide(player) {
+            $(player).trigger('hopToTime', [parseFloat(player.track.currentTime)]);
+        }
+    },
+
+    bindHotkeys: function (element) {
+        var jElement = $(element);
+
+        jElement.unbind(".hotkeys");
+
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerPlayPause'), this.reverseMode);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+;", this.pause_o);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+'", this.play_o);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+,", this.backLow);
+        jElement.bind("keydown.hotkeys", "ctrl+shift+.", this.forwardLow);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerBackward'), this.back);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerForward'), this.forward);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerVolumeUp'), this.volumeUp);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerVolumeDown'), this.volumeDown);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerSpeedDown'), this.speedDown);
+        jElement.bind("keydown.hotkeys", getHotKeyValue('PlayerSpeedUp'), this.speedUp);
+        jElement.bind("keydown.hotkeys", "ctrl+i", function () { return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+b", function () { return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+u", function () { return false; });
+        
+        jElement.bind("keydown.hotkeys", "alt+/", this.setTime);
+        jElement.bind("keydown.hotkeys", "ctrl+1", function () { selfobj.takeTime("1"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+2", function () { selfobj.takeTime("2"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+3", function () { selfobj.takeTime("3"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+4", function () { selfobj.takeTime("4"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+5", function () { selfobj.takeTime("5"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+6", function () { selfobj.takeTime("6"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+7", function () { selfobj.takeTime("7"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+8", function () { selfobj.takeTime("8"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+9", function () { selfobj.takeTime("9"); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+0", function () { selfobj.takeTime("?"); return false; });
+        jElement.bind("keydown.hotkeys", "alt+0", function () { selfobj.takeTime("?", true); return false; });
+        jElement.bind("keydown.hotkeys", "ctrl+space", function () { selfobj.takeEndTime(); return false; });
+        if (isSpeakerNamesEnabled) {
+            jElement.bind("keydown.hotkeys", "shift+[", function() {selfobj.takeTime("?", false, 'Q');return false;});
+            jElement.bind("keydown.hotkeys", "shift+]", function() {selfobj.takeTime("?", false, 'A');return false;});
+        }
+    },
+
+    isPlaying: function () {
+        return this.track && !this.track.paused && !this.track.ended;
+    },
+
+    getDescriptor: function () {
+        if (this.track) {
+            var descriptor = {
+                position: this.track.currentTime,
+                duration: this.track.duration,
+                rate: this.track.playbackRate
+            };
+
+            return descriptor;
+        }
+        return null;
+    },
+
+    actionCallback: function (action) {
+        if ($.isFunction(this.onEventFired) && this.track) {
+            var descriptor = this.getDescriptor();
+            $.extend(descriptor, { action: action });
+            this.onEventFired(descriptor);
+        }
+    }
+}
+
+function validateNumInput(evt) {
+    var event = evt || window.event;
+    var key = event.keyCode || event.which;
+    key = String.fromCharCode(key);
+    var regex = /[0-9]|\./;
+    if (!regex.test(key)) {
+        event.returnValue = false;
+        if (event.preventDefault) {
+            event.preventDefault();
+        }
+    }
+}
+
+function validateNameInput(evt) {
+    var event = evt || window.event;
+    var key = event.keyCode || event.which;
+    key = String.fromCharCode(key);
+    var regex = /^[\w\u00C0-\u017F\.\-,' ]+$/i;
+    if (!regex.test(key)) {
+        event.returnValue = false;
+        if (event.preventDefault) {
+            event.preventDefault();
+        }
+    }
+}
+
+
+function getRowIndex(node, list) {
+    for (var i in list) {
+        if (node == list[i])
+            return i;
+    }
+    return -1;
+}

@@ -1,0 +1,137 @@
+(function ($) {
+    $.fn.PagedTable = function (options) {
+        var defaults = {
+            page_size: 15,
+            page: 0,
+            params: {}
+        };
+        var opts = $.extend(defaults, options);
+        return this.each(function () {
+            $this = $(this);
+            getPage($this.attr('id'), 0);
+        });
+
+        function getPage(tbl, page) {
+            $('#' + tbl + ' div.dvloading').fadeIn();
+            var pageReq = {
+                PageIndex: page,
+                PageSize: opts.page_size,
+                DataElement: tbl
+            };
+            if (opts.params) {
+                pageReq = $.extend(pageReq, opts.params);
+            }
+            $.ajax({
+                url: options.url,
+                type: 'POST',
+                data: JSON.stringify(pageReq),
+                datatype: 'json',
+                processData: false,
+                contentType: 'application/json; charset=utf-8',
+                success: function(xml) {
+                    DataLoaded(tbl, xml);
+                },
+                error: function (e) {
+                    if (e.status != 401 && e.status != 403) {
+                        opts.FailureCallback(e, pageReq);
+                    }
+                }
+            });
+        }
+
+        function DataLoaded(tbl, data) {
+            $('#' + tbl).find("tr:gt(0)").remove();
+            bind_pager(tbl, data.TotalRecords, data.PageIndex, data.PageSize, data.ObjList.length);
+            opts.SuccessCallback(data, tbl);
+            $('#' + tbl + ' div.dvloading').fadeOut();
+        }
+
+        function bind_pager(tbl, total_records, page_index, page_size, data_count) {
+            var pages = parseInt(total_records / page_size, 10) + (total_records % page_size > 0 ? 1 : 0);
+            pages = Math.max(pages, 1);
+            var target = $('#' + tbl + ' div.tblPager');
+            target.empty();
+
+            if (options.pagingWithoutTotal == true) {
+                if (page_index > 0) {
+                    renderPageLink(target, page_index-1, page_size, 'Previous');
+                } else {
+                    target.append('Previous');
+                }
+
+                target.append('&nbsp;&nbsp;');
+
+                if (data_count >= page_size) {
+                    renderPageLink(target, page_index+1, page_size, 'Next');
+                } else {
+                    target.append('Next');
+                }
+            }
+            else if (pages > 1) {
+                //First link/text
+                if (pages > 1 && page_index > 0) {
+                    renderPageLink(target, 0, page_size, 'First', opts.SuccessCallback, opts.FailureCallback); // Why this call pass 6 arguments, but function itself has only 4?
+                } else {
+                    target.append('First');
+                }
+                target.append('&nbsp;&nbsp;');
+                //Previous link/text
+                if (pages > 1 && page_index > 0) {
+                    renderPageLink(target, (page_index - 1), page_size, 'Previous', opts.SuccessCallback, opts.FailureCallback);
+                } else {
+                    target.append('Previous');
+                }
+                target.append('&nbsp;&nbsp;');
+                //Next link/text
+                if (pages > 1 && page_index + 1 < pages) {
+                    renderPageLink(target, (page_index + 1), page_size, 'Next', opts.SuccessCallback, opts.FailureCallback);
+                } else {
+                    target.append('Next');
+                }
+                target.append('&nbsp;&nbsp;');
+                //Last link/text
+                if (pages > 1 && page_index + 1 < pages) {
+                    renderPageLink(target, (pages - 1), page_size, 'Last', opts.SuccessCallback, opts.FailureCallback);
+                } else {
+                    target.append('Last');
+                }
+                target.append('&nbsp;&nbsp;');
+                target.append('Page ' + (page_index + 1) + ' of ' + pages + '. Total Records: ' + total_records);
+
+                // Go to page index
+                target.append('<br/>');
+                //if (pages > 1) {
+                var tbPageIndex = $('<input class="tb-pt-pageindex" type="text" value="' + (parseInt(page_index, 10) + 1) + '" size="4" style="width:auto !important;"/>');
+                var btHopToPage = $('<input class="bt-pt-hoptopage" type="button" value="go!"/>');
+
+                function hopToIndex() {
+                    var pi = tbPageIndex.val();
+                    if (pi <= 0)
+                        getPage(target.parent().attr('id'), 0);
+                    else if (pi <= pages)
+                        getPage(target.parent().attr('id'), pi - 1);
+                    else if (pi > pages)
+                        getPage(target.parent().attr('id'), pages - 1);
+                }
+                btHopToPage.click(hopToIndex);
+                tbPageIndex.keypress(function (e) {
+                    if (e.which == 13)
+                        hopToIndex();
+                });
+                target.append('Hop to page: ');
+                target.append(tbPageIndex);
+                target.append(btHopToPage);
+            } else if (options.alwaysShowTotal === true) {
+                target.append('Total Records: ' + total_records);
+            }
+        }
+
+        function renderPageLink(target, page_index, page_size, text) {
+            var lnk = $('<a href="javascript:void(0);" >' + text + '</a>');
+            lnk.bind('click', function () {
+                getPage(target.parent().attr('id'), page_index);
+            });
+            target.append(lnk);
+        }
+    };
+})(jQuery);

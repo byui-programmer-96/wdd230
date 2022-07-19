@@ -1,0 +1,36 @@
+﻿function doubleSecondsToTimeSpan(d) {
+    if (!d) {
+        return 'N/A';
+    }
+    var num = parseFloat(d);
+
+    var h = (num / 3600) << 0;
+    var m = ((num - (h * 3600)) / 60) << 0;
+    var s = Math.floor(num - (h * 3600) - (m * 60));
+    var ms = ~~(num * 1000 % 1000);
+
+    h = h < 10 ? '0' + h : h;
+    m = m < 10 ? '0' + m : m;
+    s = s < 10 ? '0' + s : s;
+    ms = ('00' + ms).substr(-3);
+
+    return h + ':' + m + ':' + s + '.' + ms;
+}
+
+function doubleMinutesToTimeSpan(d) {
+    if (!d) {
+        return 'N/A';
+    }
+    var num = parseFloat(d);
+    num = num * 60;
+    return doubleSecondsToTimeSpan(num);
+}
+
+function doubleHoursToTimeSpan(d) {
+    if (!d) {
+        return 'N/A';
+    }
+    var num = parseFloat(d);
+    num = num * 60;
+    return doubleMinutesToTimeSpan(num);
+}

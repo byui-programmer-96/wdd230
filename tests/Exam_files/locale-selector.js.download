@@ -1,0 +1,15 @@
+﻿$(function() {
+    var selLocale = $('#locale-selector');
+    if (selLocale.length > 0) {
+        var url = selLocale.data('action');
+        selLocale.on("change", function() {
+            var locale = selLocale.val();
+
+            $.post(url, {locale: locale}, function (response) {
+                if (response && !response.IsError) {
+                    location.reload();
+                }
+            });
+        });
+    }
+});

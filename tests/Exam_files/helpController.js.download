@@ -1,0 +1,103 @@
+﻿"use strict";
+angular.module("transcribeme-workhub")
+.controller("helpController", ["$scope", "$element", "helpService",
+    function ($scope, $element, helpService) {
+
+    $scope.searchQuery = "";
+    $scope.userText = "";
+    $scope.userRequestSending = false;
+
+    const MAX = 20 * 1024 * 1024; //20mb
+
+    var inputFileWrapper = $element.find("footer form input-file");
+    var inputFile = $element.find("footer form input-file input[type='file']");
+    var inputFileCounter = $element.find("footer form input-file span");
+    var inputFileSize = $element.find("footer form input-file footer > span");
+        
+    inputFile.on("change", () => {
+        var files = inputFile[0].files;
+        var filesLength = files.length;
+        inputFileCounter.text(filesLength).toggle(filesLength > 0);
+        
+        var current = 0;
+        $.each(files, (i, file) => {
+            current += file.size;
+        });
+        var currentStr = current > 0 ? `${(Math.ceil(current / 1024 / 1024))}mb ` : "";
+        inputFileSize.text(currentStr);
+
+        var valid = current <= MAX;
+        inputFileWrapper.toggleClass("invalid", !valid);
+        $scope.requestForm.$setValidity("filesize", valid);
+    });
+
+    function getCookie(name) {
+        var matches = document.cookie.match(new RegExp(
+            "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+        ));
+        return matches ? decodeURIComponent(matches[1]) : undefined;
+    }
+        
+    $scope.search = () => {
+        var query = $scope.searchQuery.toLowerCase();
+        var main = $element.find("main");
+        var headers = main.find("> b");
+
+        new Mark(main[0]).unmark({
+            done: () => {
+                headers.each((i, elem) => {
+                    var header = $(elem);
+                    var text = header.next("p");
+                    
+                    new Mark([elem, text[0]]).mark(query, {
+                        done: marks => {
+                            var show = (query.length === 0 || marks > 0);
+                            header.toggle(show);
+                            text.toggle(show);
+                        }
+                    });
+                });
+            }
+        });
+    };
+
+    $scope.sendRequest = () => {
+        var data = new FormData();
+        
+        var details = `
+            \nUser:         {0}
+            \n
+            \nInterface:    OLD
+            \nLanguage:     ${getCookie("culture") || "default(en-US)"}
+            \nPage:         ${location.pathname}
+            \nLast Session: ${localStorage.getItem("log.last_session_id")} (${localStorage.getItem("log.last_session_time")})
+            \n
+            \nPlatform:     ${navigator.platform}
+            \nBrowser:      ${navigator.userAgent}
+            \nResolution:   ${window.innerWidth} x ${window.innerHeight} (${screen.width} x ${screen.height})
+        `;
+
+        data.append("request", $scope.userText);
+        data.append("details", details);
+        var files = inputFile[0].files;
+        $.each(files, (i, file) => {
+            data.append("attachment", file);
+        });
+        
+        $scope.userRequestSending = true;
+        helpService.sendRequest(data).then((result) => {
+            var messageClass = (result.data.error ? "danger" : "success");
+            var message = $element.find(`footer > .alert-${messageClass}`);
+            message.show();
+            setTimeout(() => {
+                message.hide();
+            }, 4000);
+            
+        }).finally(() => {
+            $scope.userText = "";
+            inputFile.val("").change();
+            $scope.requestForm.$setPristine();
+            $scope.userRequestSending = false;
+        });
+    }
+}]);

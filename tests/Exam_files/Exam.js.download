@@ -1,0 +1,9 @@
+﻿angular.module('Exam-localization', ['pascalprecht.translate'])
+    .config(function($translateProvider) {
+        $translateProvider.translations('en', {
+            FinishedSectionMessage: 'You have finished section',
+            PleaseWait: 'Please Wait',
+            FinishedExamMessage: 'You have finished your exam'
+        });
+        $translateProvider.preferredLanguage('en');
+    });

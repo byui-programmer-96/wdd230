@@ -1,0 +1,48 @@
+﻿function Countdown(element, stopOnComplete) {
+    this.onCompleted = null;
+    this.onTick = null;
+    this.stopOnComplete = false;
+    this.eOutput = element;
+    this.timeout = 0;
+
+    var selfobj = this;
+    var timer = null;
+    var counter = 0;
+
+    var secondsToTime = function (secs) {
+        var sign = "";
+        if (secs < 0) sign = "-";
+        secs = Math.abs(secs);
+        var mins = Math.floor(secs / 60).toString();
+        if (mins.length < 2) mins = "0" + mins;
+        secs = Math.floor(secs % 60).toString();
+        if (secs.length < 2) secs = "0" + secs;
+        return sign + mins + ":" + secs;
+    };
+
+    var displayCountdown = function (element) {
+        if (element != null)
+            $(element).text(secondsToTime(selfobj.timeout - counter));
+    }
+
+    this.stop = function () {
+        clearInterval(timer);
+        $(selfobj).trigger('onstop');
+    };
+
+    this.start = function () {
+        displayCountdown(this.eOutput);
+        if (stopOnComplete && counter >= this.timeout) return;
+        timer = setInterval(function () {
+            counter++;
+            displayCountdown(selfobj.eOutput);
+            if (selfobj.onTick != null) selfobj.onTick(counter);
+            if (counter >= selfobj.timeout) {
+                if (stopOnComplete) selfobj.stop();
+                if (selfobj.onCompleted != null) selfobj.onCompleted();
+            }
+        }, 1000);
+    };
+
+    var onstop
+}

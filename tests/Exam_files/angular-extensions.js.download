@@ -1,0 +1,4 @@
+﻿angular.$localizeString = function (key) {
+    var scope = angular.element('[ng-controller=workhub-controller]').scope();
+    return scope ? scope.getLocalizableText(key) : '';
+};

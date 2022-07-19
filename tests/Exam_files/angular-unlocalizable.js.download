@@ -1,0 +1,3 @@
+﻿angular.module('transcribeme-workhub', [])
+    .controller('workhub-controller', function () {
+    });

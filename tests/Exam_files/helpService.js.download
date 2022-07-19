@@ -1,0 +1,19 @@
+﻿"use strict";
+angular.module("transcribeme-workhub")
+.factory("helpService", ["$http", function ($http) {
+
+    return {
+        sendRequest: data => {
+            return $http.get(`${location.origin}/account/bearer`).then(results => {
+                var bearer = results.data.bearer;
+                return $http.post(`${privateApiUrl}help/request`, data, {
+                    transformRequest: angular.identity,
+                    headers: {
+                        "Authorization": `Bearer ${bearer}`,
+                        "Content-Type": undefined
+                    }
+                }).then(results => results);
+            });
+        }
+    }
+}]);

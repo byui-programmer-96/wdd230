@@ -1,0 +1,36 @@
+﻿function pagerFirst(pager) {
+    var tb = pager.find('.tb-pt-pageindex');
+    var btn = pager.find('.bt-pt-hoptopage');
+
+    tb.val('1');
+    btn.click();
+
+}
+
+function pagerLast(pager) {
+    var tb = pager.find('.tb-pt-pageindex');
+    var btn = pager.find('.bt-pt-hoptopage');
+
+    tb.val(pager.find('.pager-pagecount').text());
+    btn.click();
+
+}
+
+
+function pagerNext(pager) {
+    var tb = pager.find('.tb-pt-pageindex');
+    var btn = pager.find('.bt-pt-hoptopage');
+    var pg = parseInt(pager.find('.pager-curpage').text());
+    tb.val(pg+1);
+    btn.click();
+
+}
+
+function pagerPrev(pager) {
+    var tb = pager.find('.tb-pt-pageindex');
+    var btn = pager.find('.bt-pt-hoptopage');
+    var pg = parseInt(pager.find('.pager-curpage').text());
+    tb.val(pg - 1);
+    btn.click();
+
+}

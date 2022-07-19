@@ -1,0 +1,32 @@
+﻿$(function() {
+    var errorBox = $('#error-box');
+    if (errorBox.length > 0 && errorBox.hasClass('active')) {
+        showError();
+    }
+});
+
+function showError(message, severity) {
+    severity = !severity ? 'error' : severity;
+
+    var box = $('#error-box');
+
+    box.find('img').hide();
+    box.find('img.' + severity).show();
+    if (message) {
+        box.find('#error-msg').html(message);
+    }
+    box.show();
+    box.removeClass('success error');
+    box.addClass(severity);
+
+    var btnCloseSelector = 'button[name="close"]';
+    box.off('click', btnCloseSelector);
+    box.on('click', btnCloseSelector, function() {
+        box.slideUp();
+    });
+}
+
+function hideError() {
+    var box = $('#error-box');
+    box.slideUp();
+}
