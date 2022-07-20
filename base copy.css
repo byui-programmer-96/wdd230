@@ -1,0 +1,42 @@
+* {
+    box-sizing: border-box;
+    background-image:url("Featured-Image-Island-Life-Mexico-3.jpg");
+  }
+
+  .menu {
+    float: left;
+    width: 20%;
+    text-align: center;
+  }
+  
+  .menu a {
+    background-color: #E7743F;
+    padding: 8px;
+    margin-top: 7px;
+    display: block;
+    width: 100%;
+    color: black;
+  }
+  
+  .main {
+    float: left;
+    width: 60%;
+    padding: 0 20px;
+  }
+  
+  .right {
+    background-color: #BAE9F3;
+    float: left;
+    width: 20%;
+    padding: 15px;
+    margin-top: 7px;
+    text-align: center;
+  }
+  
+  @media only screen and (max-width: 620px) {
+    /* For mobile phones: */
+    .menu, .main, .right {
+      width: 100%;
+    }
+    
+  }
