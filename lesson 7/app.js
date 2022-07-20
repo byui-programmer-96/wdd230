@@ -13,6 +13,7 @@ fetch('https://api.openweathermap.org/data/2.5/weather?lat=20.510600&lon=-86.947
   var tempValue = data['main']['temp'];
   var nameValue = data['name'];
   var descValue = data['weather'][0]['description'];
+  var humdValue = data['weather']['hum']
 
   main.innerHTML = nameValue;
   desc.innerHTML = "Desc - "+descValue;
