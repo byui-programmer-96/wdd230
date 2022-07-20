@@ -3,10 +3,14 @@
     background-color: #BAE9F3;
     font-style:bold;
     margin:0;
-  padding: 0;
-  box-sizing: border-box;
+    padding: 0;
+    box-sizing: border-box;
   }
 
+  .heroimage {
+    max-width: 10px;
+    max-height: 40px;
+  }
   .menu {
     float: left;
     width: 20%;
@@ -43,32 +47,6 @@
       width: 100%;
     }
     
-  }
-  .input{
-    text-align: center;
-    margin: 100px auto;
-  }
-  
-  input[type="submit"]{
-    padding: 15px 30px;
-    background: #e7e7e7;
-    border: none;
-    border-radius: 1px;
-    font-family: "Nunito",sans-serif;
-    font-weight:bold;
-    font-size: 20px;
-  }
-  
-  .input input[type="text"]{
-    width: 600px;
-    height: 55px;
-    padding: 5px 10px;
-    background: #65878D;
-    border: none;
-    border-radius: 1px;
-    font-family: "Nunito",sans-serif;
-    font-weight:bold;
-    font-size: 20px;
   }
   
   .card{
