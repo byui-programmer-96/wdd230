@@ -48,13 +48,24 @@
     width: 100%;
   }
 }
+#demoparagraph {
+-webkit-column-count: 6;
+-moz-column-count: 6;
+column-count: 6;
+-webkit-column-gap: 2px;
+-moz-column-gap: 2px;
+column-gap: 2px;
+-webkit-column-rule: 1px solid rgba(28,110,164,0.42);
+-moz-column-rule: 1px solid rgba(28,110,164,0.42);
+column-rule: 1px solid rgba(28,110,164,0.42);
+}
 </style>
 </head>
 <body style="font-family:Verdana;">
 
 <div style="background-color:#f1f1f1;padding:15px;">
   <h1>Rentals</h1>
-  <h3>Resize the browser window</h3>
+  <h3>So many places, so little time.</h3>
 </div>
 
 <div style="overflow:auto">
@@ -66,86 +77,18 @@
   </div>
 
   <div class="main">
-    <script type="text/javascript">
-        let prices=
-        `[
-    {
-    "rentaltype": "Honda Metro Scooter",
-    "maxperson":"1",
-    "halfday": "$20",
-    "fullday":"$30",
-    "walkin":[{"halfday":"$25",
-    "fullday":"$35"
-    }]
-
-},
-
-{
-    "rentaltype": "Honda Dio Scooter",
-    "maxperson":"2",
-    "halfday": "$30",
-    "fullday":"$40",
-    "walkin":[{"halfday":"$35",
-    "fullday":"$45"
-    }]
-
-}, 
-{
-    "rentaltype": "Honda PCX150 Scooter",
-    "maxperson":"2",
-    "halfday": "$40",
-    "fullday":"$50",
-    "walkin":[{"halfday":"$45",
-    "fullday":"$55"
-    }]
-
-},
-{
-    "rentaltype": "Honda Pioneer ATV",
-    "maxperson":"4",
-    "halfday": "$50",
-    "fullday":"$70",
-    "walkin":[{"halfday":"$60",
-    "fullday":"$80"
-    }]
-
-},
-{
-    "rentaltype": "Jeep Wrangler—4 door with a/c",
-    "maxperson":"5",
-    "halfday": "$70",
-    "fullday":"$100",
-    "walkin":[{"halfday":"$85",
-    "fullday":"$125"
-    }]
-
-},
-{
-    "rentaltype": "Jeep Wrangler—2 door",
-    "maxperson":"4",
-    "halfday": "$60",
-    "fullday":"$85",
-    "walkin":[{"halfday":"$70",
-    "fullday":"$90"
-    }]
-
-}
-]`
-
-console.log(JSON.parse(prices))
-    </script>
-  </div>
-
-  <div class="right">
-    <h2>What?</h2>
-    <p>Cinque Terre comprises five villages: Monterosso, Vernazza, Corniglia, Manarola, and Riomaggiore.</p>
-    <h2>Where?</h2>
-    <p>On the northwest cost of the Italian Riviera, north of the city La Spezia.</p>
-    <h2>Price?</h2>
-    <p>The Walk is free!</p>
-  </div>
-</div>
-
+    <pictures>
+        <img src="casual-girl-sitting-scooter-two-houses.jpg" alt="women on a scooter" width="300" height="400">
+    </pictures>
+    <br><br>
+    <pictures>
+        <img src="woman-travelling-quad-by-th-ocean.jpg" alt="women on ATV" width="300" height="200">
+    </pictures>
+    <br><br>
+    <pictures>
+        <img src="3343546.jpg" alt="jeep"width="300" height="400">
+    </pictures>
+    <br><br>
 <div style="background-color:#65878D;text-align:center;padding:10px;margin-top:7px;"><footer>
     <p>
      ©
